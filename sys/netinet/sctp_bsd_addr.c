@@ -381,17 +381,7 @@ sctp_get_mbuf_for_msg(unsigned int space_needed, int want_header,
 		return (m);
 	}
 	if (allonebuf) {
-		int siz;
-
-		if (SCTP_BUF_IS_EXTENDED(m)) {
-			siz = SCTP_BUF_EXTEND_SIZE(m);
-		} else {
-			if (want_header)
-				siz = MHLEN;
-			else
-				siz = MLEN;
-		}
-		if (siz < space_needed) {
+		if (SCTP_BUF_SIZE(m) < space_needed) {
 			m_freem(m);
 			return (NULL);
 		}
@@ -402,6 +392,7 @@ sctp_get_mbuf_for_msg(unsigned int space_needed, int want_header,
 	}
 #ifdef SCTP_MBUF_LOGGING
 	if (SCTP_BASE_SYSCTL(sctp_logging_level) & SCTP_MBUF_LOGGING_ENABLE) {
+		/* XXXRW: How to handle this post-M_EXT? */
 		if (SCTP_BUF_IS_EXTENDED(m)) {
 			sctp_log_mb(m, SCTP_MBUF_IALLOC);
 		}

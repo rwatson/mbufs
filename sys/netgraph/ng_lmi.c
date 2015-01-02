@@ -567,7 +567,7 @@ nglmi_rcvdata(hook_p hook, item_p item)
 	packetlen = m->m_len;
 
 	/* XXX what if it's more than 1 mbuf? */
-	if ((packetlen > MHLEN) && !(m->m_flags & M_EXT)) {
+	if (packetlen > M_SIZE(m)) {
 		log(LOG_WARNING, "nglmi: packetlen (%d) too big\n", packetlen);
 		goto drop;
 	}

@@ -41,6 +41,8 @@ __FBSDID("$FreeBSD$");
 #define	CAS_DEBUG
 #endif
 
+#define	MBUF_PRIVATE	/* XXXRW: Use of M_EXT for MEXTADD. */
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>

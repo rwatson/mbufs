@@ -213,7 +213,10 @@ struct mbuf {
  * to M_PROTO[1-12] and cleared at layer handoff boundaries.
  * NB: Limited to the lower 24 bits.
  */
-#define	M_EXT		0x00000001 /* has associated external storage */
+#define	_M_EXT		0x00000001 /* has associated external storage */
+#ifdef MBUF_PRIVATE
+#define	M_EXT		_M_EXT
+#endif
 #define	M_PKTHDR	0x00000002 /* start of record */
 #define	M_EOR		0x00000004 /* end of record */
 #define	M_RDONLY	0x00000008 /* associated data is marked read-only */
@@ -555,7 +558,7 @@ m_extaddref(struct mbuf *m, caddr_t buf, u_int size, u_int *ref_cnt,
 	KASSERT(ref_cnt != NULL, ("%s: ref_cnt not provided", __func__));
 
 	atomic_add_int(ref_cnt, 1);
-	m->m_flags |= M_EXT;
+	m->m_flags |= _M_EXT;
 	m->m_ext.ext_buf = buf;
 	m->m_ext.ext_cnt = ref_cnt;
 	m->m_data = m->m_ext.ext_buf;
@@ -667,11 +670,11 @@ m_getcl(int how, short type, int flags)
 	return (uma_zalloc_arg(zone_pack, &args, how));
 }
 
-static __inline void
+static __inline int
 m_clget(struct mbuf *m, int how)
 {
 
-	if (m->m_flags & M_EXT)
+	if (m->m_flags & _M_EXT)
 		printf("%s: %p mbuf already has external storage\n", __func__, m);
 	m->m_ext.ext_buf = (char *)NULL;
 	uma_zalloc_arg(zone_clust, m, how);
@@ -683,6 +686,7 @@ m_clget(struct mbuf *m, int how)
 		zone_drain(zone_pack);
 		uma_zalloc_arg(zone_clust, m, how);
 	}
+	return (m->m_flags & _M_EXT);
 }
 
 /*
@@ -697,7 +701,7 @@ m_cljget(struct mbuf *m, int how, int size)
 {
 	uma_zone_t zone;
 
-	if (m && m->m_flags & M_EXT)
+	if (m && m->m_flags & _M_EXT)
 		printf("%s: %p mbuf already has external storage\n", __func__, m);
 	if (m != NULL)
 		m->m_ext.ext_buf = NULL;
@@ -742,7 +746,7 @@ m_cljset(struct mbuf *m, void *cl, int type)
 	m->m_ext.ext_type = type;
 	m->m_ext.ext_flags = 0;
 	m->m_ext.ext_cnt = uma_find_refcnt(zone, cl);
-	m->m_flags |= M_EXT;
+	m->m_flags |= _M_EXT;
 
 }
 
@@ -789,7 +793,7 @@ m_last(struct mbuf *m)
  * whether M_EXT is set).
  */
 #define	M_WRITABLE(m)	(!((m)->m_flags & M_RDONLY) &&			\
-			 (!(((m)->m_flags & M_EXT)) ||			\
+			 (!(((m)->m_flags & _M_EXT)) ||			\
 			 (*((m)->m_ext.ext_cnt) == 1)) )		\
 
 /* Check if the supplied mbuf has a packet header, or else panic. */
@@ -807,47 +811,11 @@ m_last(struct mbuf *m)
 	    ("%s: attempted use of a free mbuf!", __func__))
 
 /*
- * Set the m_data pointer of a newly-allocated mbuf (m_get/MGET) to place an
- * object of the specified size at the end of the mbuf, longword aligned.
- */
-#define	M_ALIGN(m, len) do {						\
-	KASSERT(!((m)->m_flags & (M_PKTHDR|M_EXT)),			\
-		("%s: M_ALIGN not normal mbuf", __func__));		\
-	KASSERT((m)->m_data == (m)->m_dat,				\
-		("%s: M_ALIGN not a virgin mbuf", __func__));		\
-	(m)->m_data += (MLEN - (len)) & ~(sizeof(long) - 1);		\
-} while (0)
-
-/*
- * As above, for mbufs allocated with m_gethdr/MGETHDR or initialized by
- * M_DUP/MOVE_PKTHDR.
- */
-#define	MH_ALIGN(m, len) do {						\
-	KASSERT((m)->m_flags & M_PKTHDR && !((m)->m_flags & M_EXT),	\
-		("%s: MH_ALIGN not PKTHDR mbuf", __func__));		\
-	KASSERT((m)->m_data == (m)->m_pktdat,				\
-		("%s: MH_ALIGN not a virgin mbuf", __func__));		\
-	(m)->m_data += (MHLEN - (len)) & ~(sizeof(long) - 1);		\
-} while (0)
-
-/*
- * As above, for mbuf with external storage.
- */
-#define	MEXT_ALIGN(m, len) do {						\
-	KASSERT((m)->m_flags & M_EXT,					\
-		("%s: MEXT_ALIGN not an M_EXT mbuf", __func__));	\
-	KASSERT((m)->m_data == (m)->m_ext.ext_buf,			\
-		("%s: MEXT_ALIGN not a virgin mbuf", __func__));	\
-	(m)->m_data += ((m)->m_ext.ext_size - (len)) &			\
-	    ~(sizeof(long) - 1); 					\
-} while (0)
-
-/*
  * Return the address of the start of the buffer associated with an mbuf,
  * handling external storage, packet-header mbufs, and regular data mbufs.
  */
 #define	M_START(m)							\
-	(((m)->m_flags & M_EXT) ? (m)->m_ext.ext_buf :			\
+	(((m)->m_flags & _M_EXT) ? (m)->m_ext.ext_buf :			\
 	 ((m)->m_flags & M_PKTHDR) ? &(m)->m_pktdat[0] :		\
 	 &(m)->m_dat[0])
 
@@ -856,9 +824,44 @@ m_last(struct mbuf *m)
  * storage, packet-header mbufs, and regular data mbufs.
  */
 #define	M_SIZE(m)							\
-	(((m)->m_flags & M_EXT) ? (m)->m_ext.ext_size :			\
+	(((m)->m_flags & _M_EXT) ? (m)->m_ext.ext_size :		\
 	 ((m)->m_flags & M_PKTHDR) ? MHLEN :				\
 	 MLEN)
+
+/*
+ * Set the m_data pointer of a newly-allocated mbuf to place an object of the
+ * specified size at the end of the mbuf, longword aligned.
+ *
+ * NB: Historically, we had M_ALIGN(), MH_ALIGN(), and MEXT_ALIGN() as
+ * separate macros, each asserting that it was called at the proper moment.
+ * This required callers to themselves test the storage type and call the
+ * right one.  Rather than require callers to be aware of those layout
+ * decisions, we centralize here.
+ */
+static __inline void
+m_align(struct mbuf *m, int len)
+{
+#ifdef INVARIANTS
+	const char *msg = "%s: not a virgin mbuf";
+#endif
+	int adjust;
+
+	KASSERT(m->m_data == M_START(m), (msg, __func__));
+
+	if (m->m_flags & _M_EXT) {
+		adjust = m->m_ext.ext_size - len;
+	} else if (m->m_flags & M_PKTHDR) {
+		adjust = MHLEN - len;
+	} else {
+		adjust = MLEN - len;
+	}
+
+	m->m_data += adjust &~ (sizeof(long)-1);
+}
+
+#define	M_ALIGN(m, len)		m_align(m, len)
+#define	MH_ALIGN(m, len)	m_align(m, len)
+#define	MEXT_ALIGN(m, len)	m_align(m, len)
 
 /*
  * Compute the amount of space available before the current start of data in
@@ -1162,7 +1165,7 @@ m_free(struct mbuf *m)
 
 	if ((m->m_flags & (M_PKTHDR|M_NOFREE)) == (M_PKTHDR|M_NOFREE))
 		m_tag_delete_chain(m, NULL);
-	if (m->m_flags & M_EXT)
+	if (m->m_flags & _M_EXT)
 		mb_free_ext(m);
 	else if ((m->m_flags & M_NOFREE) == 0)
 		uma_zfree(zone_mbuf, m);

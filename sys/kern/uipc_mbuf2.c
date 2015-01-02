@@ -65,6 +65,8 @@ __FBSDID("$FreeBSD$");
 
 /*#define PULLDOWN_DEBUG*/
 
+#define	MBUF_PRIVATE
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>

@@ -30,6 +30,8 @@ __FBSDID("$FreeBSD$");
 
 #include "opt_param.h"
 
+#define	MBUF_PRIVATE
+
 #include <sys/param.h>
 #include <sys/malloc.h>
 #include <sys/systm.h>

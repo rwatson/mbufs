@@ -42,6 +42,8 @@ __FBSDID("$FreeBSD$");
 #include "opt_compat.h"
 #include "opt_ktrace.h"
 
+#define	MBUF_PRIVATE
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/capsicum.h>

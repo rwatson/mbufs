@@ -32,6 +32,8 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#define	MBUF_PRIVATE	/* XXXRW: Uses M_EXT for stats purposes. */
+
 #include "opt_inet.h"
 #include "opt_natm.h"
 
@@ -1105,7 +1107,7 @@ fatm_supply_small_buffers(struct fatm_softc *sc)
 				LIST_INSERT_HEAD(&sc->rbuf_free, rb, link);
 				break;
 			}
-			MH_ALIGN(m, SMALL_BUFFER_LEN);
+			M_ALIGN(m, SMALL_BUFFER_LEN);
 			error = bus_dmamap_load(sc->rbuf_tag, rb->map,
 			    m->m_data, SMALL_BUFFER_LEN, dmaload_helper,
 			    &phys, BUS_DMA_NOWAIT);
@@ -1196,6 +1198,16 @@ fatm_supply_large_buffers(struct fatm_softc *sc)
 				break;
 			}
 			/* No MEXT_ALIGN */
+			/*
+			 * XXXRW: Does this mean that MEXT_ALIGN can't be used
+			 * here -- and of not, why not -- or that there was no
+			 * MEXT_ALIGN at the time that this code was written?
+			 *
+			 * I think the latter, in which case this could
+			 * become:
+			 *
+			 * MEXT_ALIGN(m, LARGE_BUFFER_LEN);
+			 */
 			m->m_data += MCLBYTES - LARGE_BUFFER_LEN;
 			error = bus_dmamap_load(sc->rbuf_tag, rb->map,
 			    m->m_data, LARGE_BUFFER_LEN, dmaload_helper,

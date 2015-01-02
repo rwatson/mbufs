@@ -34,6 +34,8 @@ __FBSDID("$FreeBSD$");
 
 #include "opt_param.h"
 
+#define	MBUF_PRIVATE
+
 #include <sys/param.h>
 #include <sys/aio.h> /* for aio_swake proto */
 #include <sys/kernel.h>

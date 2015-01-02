@@ -107,6 +107,8 @@ __FBSDID("$FreeBSD$");
 #include "opt_inet6.h"
 #include "opt_compat.h"
 
+#define	MBUF_PRIVATE
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/fcntl.h>

@@ -825,6 +825,8 @@ vx_get(struct vx_softc *sc, u_int totlen)
 		}
 		/* Convert one of our saved mbuf's. */
 		sc->vx_next_mb = (sc->vx_next_mb + 1) % MAX_MBS;
+
+		/* XXXRW: need to properly initialise with m_pkthdr_init(). */
 		m->m_data = m->m_pktdat;
 		m->m_flags = M_PKTHDR;
 		bzero(&m->m_pkthdr, sizeof(m->m_pkthdr));
@@ -865,8 +867,7 @@ vx_get(struct vx_softc *sc, u_int totlen)
 			len = MLEN;
 		}
 		if (totlen >= MINCLSIZE) {
-			MCLGET(m, M_NOWAIT);
-			if (m->m_flags & M_EXT)
+			if (MCLGET(m, M_NOWAIT))
 				len = MCLBYTES;
 		}
 		len = min(totlen, len);

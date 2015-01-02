@@ -384,6 +384,8 @@ ieee80211_flush_ifq(struct ifqueue *ifq, struct ieee80211vap *vap)
 /*
  * As above, for mbufs allocated with m_gethdr/MGETHDR
  * or initialized by M_COPY_PKTHDR.
+ *
+ * XXXRW: Hand-crafted alignment function?
  */
 #define	MC_ALIGN(m, len)						\
 do {									\
@@ -420,7 +422,7 @@ ieee80211_getmgtframe(uint8_t **frm, int headroom, int pktlen)
 		 * frames which all fit in MHLEN.
 		 */
 		if (m != NULL)
-			MH_ALIGN(m, len);
+			M_ALIGN(m, len);
 	} else {
 		m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 		if (m != NULL)

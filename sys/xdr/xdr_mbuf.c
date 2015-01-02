@@ -28,6 +28,8 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#define	MBUF_PRIVATE	/* XXXRW: Dubious heuristic using M_EXT? */
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/malloc.h>
@@ -228,6 +230,14 @@ xdrmbuf_putbytes(XDR *xdrs, const char *addr, u_int len)
 
 		if (xdrs->x_handy == m->m_len && M_TRAILINGSPACE(m) == 0) {
 			if (!m->m_next) {
+				/*
+				 * XXXRW: I don't understand this.  Why do we
+				 * use the fact that a previous mbuf has a
+				 * cluster to decide if the next one should,
+				 * rather than, say, the number of bytes we
+				 * expect to add.  Is this some sort of
+				 * heuristic?
+				 */
 				if (m->m_flags & M_EXT)
 					n = m_getcl(M_WAITOK, m->m_type, 0);
 				else

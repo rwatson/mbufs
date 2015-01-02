@@ -1353,7 +1353,7 @@ ip_mloopback(struct ifnet *ifp, struct mbuf *m, struct sockaddr_in *dst,
 	 * modify the pack in order to generate checksums.
 	 */
 	copym = m_dup(m, M_NOWAIT);
-	if (copym != NULL && (copym->m_flags & M_EXT || copym->m_len < hlen))
+	if (copym != NULL && (!M_WRITABLE(m) || copym->m_len < hlen))
 		copym = m_pullup(copym, hlen);
 	if (copym != NULL) {
 		/* If needed, compute the checksum and mark it as valid. */

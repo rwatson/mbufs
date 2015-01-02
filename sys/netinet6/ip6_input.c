@@ -63,6 +63,8 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#define	MBUF_PRIVATE	/* XXXRW: Counts cluster mbufs for stats purposes. */
+
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_ipfw.h"

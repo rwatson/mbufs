@@ -192,7 +192,7 @@ sbspace(struct sockbuf *sb)
 		(sb)->sb_ctl += (m)->m_len; \
 	(sb)->sb_mbcnt += MSIZE; \
 	(sb)->sb_mcnt += 1; \
-	if ((m)->m_flags & M_EXT) { \
+	if ((m)->m_flags & _M_EXT) { \
 		(sb)->sb_mbcnt += (m)->m_ext.ext_size; \
 		(sb)->sb_ccnt += 1; \
 	} \
@@ -205,7 +205,7 @@ sbspace(struct sockbuf *sb)
 		(sb)->sb_ctl -= (m)->m_len; \
 	(sb)->sb_mbcnt -= MSIZE; \
 	(sb)->sb_mcnt -= 1; \
-	if ((m)->m_flags & M_EXT) { \
+	if ((m)->m_flags & _M_EXT) { \
 		(sb)->sb_mbcnt -= (m)->m_ext.ext_size; \
 		(sb)->sb_ccnt -= 1; \
 	} \

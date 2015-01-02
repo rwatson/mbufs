@@ -49,10 +49,7 @@
 /*
  * First define what the actual subs. return
  */
-
-#define	M_HASCL(m)	((m)->m_flags & M_EXT)
-#define	NFSMSIZ(m)	((M_HASCL(m))?MCLBYTES: \
-				(((m)->m_flags & M_PKTHDR)?MHLEN:MLEN))
+#define	NFSMSIZ(m)	M_SIZE(m)
 
 /*
  * Now for the macros that do the simple stuff and call the functions

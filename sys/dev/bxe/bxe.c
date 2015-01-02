@@ -27,6 +27,8 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#define	MBUF_PRIVATE	/* XXXRW: Another dubious mbuf printing routine. */
+
 #define BXE_DRIVER_VERSION "1.78.78"
 
 #include "bxe.h"

@@ -33,6 +33,8 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#define	MBUF_PRIVATE		/* XXXRW: M_EXT used to make copying decions. */
+
 #include <netinet/sctp_os.h>
 #include <sys/proc.h>
 #include <netinet/sctp_var.h>
@@ -6783,13 +6785,6 @@ sctp_sendall_completes(void *ptr, uint32_t val SCTP_UNUSED)
 	sctp_m_freem(ca->m);
 	SCTP_FREE(ca, SCTP_M_COPYAL);
 }
-
-
-#define	MC_ALIGN(m, len) do {						\
-	SCTP_BUF_RESV_UF(m, ((MCLBYTES - (len)) & ~(sizeof(long) - 1));	\
-} while (0)
-
-
 
 static struct mbuf *
 sctp_copy_out_all(struct uio *uio, int len)

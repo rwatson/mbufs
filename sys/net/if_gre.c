@@ -393,7 +393,7 @@ gre_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 			mob_h.proto = htons(mob_h.proto);
 			mob_h.hcrc = gre_in_cksum((u_int16_t *)&mob_h, msiz);
 
-			if ((m->m_data - msiz) < m->m_pktdat) {
+			if (M_LEADINGSPACE(m) < msiz) {
 				m0 = m_gethdr(M_NOWAIT, MT_DATA);
 				if (m0 == NULL) {
 					if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
