@@ -435,6 +435,81 @@ _ath_power_restore_power_state(struct ath_softc *sc, const char *file, int line)
 
 }
 
+/*
+ * Configure the initial HAL configuration values based on bus
+ * specific parameters.
+ *
+ * Some PCI IDs and other information may need tweaking.
+ *
+ * XXX TODO: ath9k and the Atheros HAL only program comm2g_switch_enable
+ * if BT antenna diversity isn't enabled.
+ *
+ * So, let's also figure out how to enable BT diversity for AR9485.
+ */
+static void
+ath_setup_hal_config(struct ath_softc *sc, HAL_OPS_CONFIG *ah_config)
+{
+	/* XXX TODO: only for PCI devices? */
+
+	if (sc->sc_pci_devinfo & (ATH_PCI_CUS198 | ATH_PCI_CUS230)) {
+		ah_config->ath_hal_ext_lna_ctl_gpio = 0x200; /* bit 9 */
+		ah_config->ath_hal_ext_atten_margin_cfg = AH_TRUE;
+		ah_config->ath_hal_min_gainidx = AH_TRUE;
+		ah_config->ath_hal_ant_ctrl_comm2g_switch_enable = 0x000bbb88;
+		/* XXX low_rssi_thresh */
+		/* XXX fast_div_bias */
+		device_printf(sc->sc_dev, "configuring for %s\n",
+		    (sc->sc_pci_devinfo & ATH_PCI_CUS198) ?
+		    "CUS198" : "CUS230");
+	}
+
+	if (sc->sc_pci_devinfo & ATH_PCI_CUS217)
+		device_printf(sc->sc_dev, "CUS217 card detected\n");
+
+	if (sc->sc_pci_devinfo & ATH_PCI_CUS252)
+		device_printf(sc->sc_dev, "CUS252 card detected\n");
+
+	if (sc->sc_pci_devinfo & ATH_PCI_AR9565_1ANT)
+		device_printf(sc->sc_dev, "WB335 1-ANT card detected\n");
+
+	if (sc->sc_pci_devinfo & ATH_PCI_AR9565_2ANT)
+		device_printf(sc->sc_dev, "WB335 2-ANT card detected\n");
+
+	if (sc->sc_pci_devinfo & ATH_PCI_KILLER)
+		device_printf(sc->sc_dev, "Killer Wireless card detected\n");
+
+#if 0
+        /*
+         * Some WB335 cards do not support antenna diversity. Since
+         * we use a hardcoded value for AR9565 instead of using the
+         * EEPROM/OTP data, remove the combining feature from
+         * the HW capabilities bitmap.
+         */
+        if (sc->sc_pci_devinfo & (ATH9K_PCI_AR9565_1ANT | ATH9K_PCI_AR9565_2ANT)) {
+                if (!(sc->sc_pci_devinfo & ATH9K_PCI_BT_ANT_DIV))
+                        pCap->hw_caps &= ~ATH9K_HW_CAP_ANT_DIV_COMB;
+        }
+
+        if (sc->sc_pci_devinfo & ATH9K_PCI_BT_ANT_DIV) {
+                pCap->hw_caps |= ATH9K_HW_CAP_BT_ANT_DIV;
+                device_printf(sc->sc_dev, "Set BT/WLAN RX diversity capability\n");
+        }
+#endif
+
+        if (sc->sc_pci_devinfo & ATH_PCI_D3_L1_WAR) {
+                ah_config->ath_hal_pcie_waen = 0x0040473b;
+                device_printf(sc->sc_dev, "Enable WAR for ASPM D3/L1\n");
+        }
+
+#if 0
+        if (sc->sc_pci_devinfo & ATH9K_PCI_NO_PLL_PWRSAVE) {
+                ah->config.no_pll_pwrsave = true;
+                device_printf(sc->sc_dev, "Disable PLL PowerSave\n");
+        }
+#endif
+
+}
+
 #define	HAL_MODE_HT20 (HAL_MODE_11NG_HT20 | HAL_MODE_11NA_HT20)
 #define	HAL_MODE_HT40 \
 	(HAL_MODE_11NG_HT40PLUS | HAL_MODE_11NG_HT40MINUS | \
@@ -450,6 +525,7 @@ ath_attach(u_int16_t devid, struct ath_softc *sc)
 	u_int wmodes;
 	uint8_t macaddr[IEEE80211_ADDR_LEN];
 	int rx_chainmask, tx_chainmask;
+	HAL_OPS_CONFIG ah_config;
 
 	DPRINTF(sc, ATH_DEBUG_ANY, "%s: devid 0x%x\n", __func__, devid);
 
@@ -468,8 +544,17 @@ ath_attach(u_int16_t devid, struct ath_softc *sc)
 		device_get_unit(sc->sc_dev));
 	CURVNET_RESTORE();
 
+	/*
+	 * Configure the initial configuration data.
+	 *
+	 * This is stuff that may be needed early during attach
+	 * rather than done via configuration calls later.
+	 */
+	bzero(&ah_config, sizeof(ah_config));
+	ath_setup_hal_config(sc, &ah_config);
+
 	ah = ath_hal_attach(devid, sc, sc->sc_st, sc->sc_sh,
-	    sc->sc_eepromdata, &status);
+	    sc->sc_eepromdata, &ah_config, &status);
 	if (ah == NULL) {
 		if_printf(ifp, "unable to attach hardware; HAL status %u\n",
 			status);
@@ -1727,7 +1812,10 @@ ath_suspend(struct ath_softc *sc)
 	 */
 	ath_hal_intrset(sc->sc_ah, 0);
 	taskqueue_block(sc->sc_tq);
-	callout_drain(&sc->sc_cal_ch);
+
+	ATH_LOCK(sc);
+	callout_stop(&sc->sc_cal_ch);
+	ATH_UNLOCK(sc);
 
 	/*
 	 * XXX ensure sc_invalid is 1
@@ -5514,6 +5602,8 @@ ath_calibrate(void *arg)
 	HAL_BOOL aniCal, shortCal = AH_FALSE;
 	int nextcal;
 
+	ATH_LOCK_ASSERT(sc);
+
 	/*
 	 * Force the hardware awake for ANI work.
 	 */
@@ -5803,12 +5893,17 @@ ath_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 	 * Now, wake the thing up.
 	 */
 	ath_power_set_power_state(sc, HAL_PM_AWAKE);
+
+	/*
+	 * And stop the calibration callout whilst we have
+	 * ATH_LOCK held.
+	 */
+	callout_stop(&sc->sc_cal_ch);
 	ATH_UNLOCK(sc);
 
 	if (ostate == IEEE80211_S_CSA && nstate == IEEE80211_S_RUN)
 		csa_run_transition = 1;
 
-	callout_drain(&sc->sc_cal_ch);
 	ath_hal_setledstate(ah, leds[nstate]);	/* set LED */
 
 	if (nstate == IEEE80211_S_SCAN) {
@@ -5999,7 +6094,6 @@ ath_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 		ATH_LOCK(sc);
 		ath_power_setselfgen(sc, HAL_PM_AWAKE);
 		ath_power_setpower(sc, HAL_PM_AWAKE);
-		ATH_UNLOCK(sc);
 
 		/*
 		 * Finally, start any timers and the task q thread
@@ -6012,6 +6106,7 @@ ath_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 			DPRINTF(sc, ATH_DEBUG_CALIBRATE,
 			    "%s: calibration disabled\n", __func__);
 		}
+		ATH_UNLOCK(sc);
 
 		taskqueue_unblock(sc->sc_tq);
 	} else if (nstate == IEEE80211_S_INIT) {
@@ -6372,13 +6467,13 @@ ath_watchdog(void *arg)
 	struct ath_softc *sc = arg;
 	int do_reset = 0;
 
+	ATH_LOCK_ASSERT(sc);
+
 	if (sc->sc_wd_timer != 0 && --sc->sc_wd_timer == 0) {
 		struct ifnet *ifp = sc->sc_ifp;
 		uint32_t hangs;
 
-		ATH_LOCK(sc);
 		ath_power_set_power_state(sc, HAL_PM_AWAKE);
-		ATH_UNLOCK(sc);
 
 		if (ath_hal_gethangstate(sc->sc_ah, 0xffff, &hangs) &&
 		    hangs != 0) {
@@ -6390,9 +6485,7 @@ ath_watchdog(void *arg)
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		sc->sc_stats.ast_watchdog++;
 
-		ATH_LOCK(sc);
 		ath_power_restore_power_state(sc);
-		ATH_UNLOCK(sc);
 	}
 
 	/*
@@ -7101,6 +7194,6 @@ ath_node_recv_pspoll(struct ieee80211_node *ni, struct mbuf *m)
 
 MODULE_VERSION(if_ath, 1);
 MODULE_DEPEND(if_ath, wlan, 1, 1, 1);          /* 802.11 media layer */
-#if	defined(IEEE80211_ALQ) || defined(AH_DEBUG_ALQ)
+#if	defined(IEEE80211_ALQ) || defined(AH_DEBUG_ALQ) || defined(ATH_DEBUG_ALQ)
 MODULE_DEPEND(if_ath, alq, 1, 1, 1);
 #endif

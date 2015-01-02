@@ -23,7 +23,6 @@
 # src tree.
 
 __DEFAULT_YES_OPTIONS = \
-    ARM_EABI \
     BLUETOOTH \
     CDDL \
     CRYPT \
@@ -80,6 +79,18 @@ MK_${var}:=	no
 .if defined(WITHOUT_${var}_SUPPORT) || ${MK_${var}} == "no"
 MK_${var}_SUPPORT:= no
 .else
+.if defined(KERNBUILDDIR)	# See if there's an opt_foo.h
+OPT_${var}!= cat ${KERNBUILDDIR}/opt_${var:tl}.h; echo
+.if ${OPT_${var}} == ""		# nothing -> no
+MK_${var}_SUPPORT:= no
+.else
 MK_${var}_SUPPORT:= yes
 .endif
+.else				# otherwise, yes
+MK_${var}_SUPPORT:= yes
+.endif
+.endif
 .endfor
+
+
+

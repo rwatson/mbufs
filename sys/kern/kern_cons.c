@@ -156,6 +156,13 @@ cninit(void)
 	 * Make the best console the preferred console.
 	 */
 	cnselect(best_cn);
+
+#ifdef EARLY_PRINTF
+	/*
+	 * Release early console.
+	 */
+	early_putc = NULL;
+#endif
 }
 
 void
@@ -594,7 +601,13 @@ static void
 cn_drvinit(void *unused)
 {
 
-	mtx_init(&cnputs_mtx, "cnputs_mtx", NULL, MTX_SPIN | MTX_NOWITNESS);
+	/*
+	 * NOTE: Debug prints and/or witness printouts in console
+	 * driver clients can cause the "cnputs_mtx" mutex to
+	 * recurse. Make sure the "MTX_RECURSE" flags is set!
+	 */
+	mtx_init(&cnputs_mtx, "cnputs_mtx", NULL, MTX_SPIN |
+	    MTX_NOWITNESS | MTX_RECURSE);
 	use_cnputs_mtx = 1;
 }
 
@@ -689,10 +702,10 @@ vty_enabled(unsigned vty)
 				vty_selected = vty_prefer;
 				break;
 			}
-#if defined(DEV_SC)
-			vty_selected = VTY_SC;
-#elif defined(DEV_VT)
+#if defined(DEV_VT)
 			vty_selected = VTY_VT;
+#elif defined(DEV_SC)
+			vty_selected = VTY_SC;
 #endif
 		} while (0);
 

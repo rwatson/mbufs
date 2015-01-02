@@ -189,7 +189,11 @@ restart:
 	fmode = *flagp;
 	if (fmode & O_CREAT) {
 		ndp->ni_cnd.cn_nameiop = CREATE;
-		ndp->ni_cnd.cn_flags = ISOPEN | LOCKPARENT | LOCKLEAF;
+		/*
+		 * Set NOCACHE to avoid flushing the cache when
+		 * rolling in many files at once.
+		*/
+		ndp->ni_cnd.cn_flags = ISOPEN | LOCKPARENT | LOCKLEAF | NOCACHE;
 		if ((fmode & O_EXCL) == 0 && (fmode & O_NOFOLLOW) == 0)
 			ndp->ni_cnd.cn_flags |= FOLLOW;
 		if (!(vn_open_flags & VN_OPEN_NOAUDIT))
@@ -213,6 +217,8 @@ restart:
 					return (error);
 				goto restart;
 			}
+			if ((vn_open_flags & VN_OPEN_NAMECACHE) != 0)
+				ndp->ni_cnd.cn_flags |= MAKEENTRY;
 #ifdef MAC
 			error = mac_vnode_check_create(cred, ndp->ni_dvp,
 			    &ndp->ni_cnd, vap);
@@ -504,13 +510,16 @@ vn_rdwr(enum uio_rw rw, struct vnode *vp, void *base, int len, off_t offset,
 	error = 0;
 
 	if ((ioflg & IO_NODELOCKED) == 0) {
-		if (rw == UIO_READ) {
-			rl_cookie = vn_rangelock_rlock(vp, offset,
-			    offset + len);
-		} else {
-			rl_cookie = vn_rangelock_wlock(vp, offset,
-			    offset + len);
-		}
+		if ((ioflg & IO_RANGELOCKED) == 0) {
+			if (rw == UIO_READ) {
+				rl_cookie = vn_rangelock_rlock(vp, offset,
+				    offset + len);
+			} else {
+				rl_cookie = vn_rangelock_wlock(vp, offset,
+				    offset + len);
+			}
+		} else
+			rl_cookie = NULL;
 		mp = NULL;
 		if (rw == UIO_WRITE) { 
 			if (vp->v_type != VCHR &&
@@ -1569,6 +1578,25 @@ vn_closefile(fp, td)
 	return (error);
 }
 
+static bool
+vn_suspendable_mp(struct mount *mp)
+{
+
+	return ((mp->mnt_kern_flag & MNTK_SUSPENDABLE) != 0);
+}
+
+static bool
+vn_suspendable(struct vnode *vp, struct mount **mpp)
+{
+
+	if (vp != NULL)
+		*mpp = vp->v_mount;
+	if (*mpp == NULL)
+		return (false);
+
+	return (vn_suspendable_mp(*mpp));
+}
+
 /*
  * Preparing to start a filesystem write operation. If the operation is
  * permitted, then we bump the count of operations in progress and
@@ -1578,7 +1606,7 @@ vn_closefile(fp, td)
 static int
 vn_start_write_locked(struct mount *mp, int flags)
 {
-	int error;
+	int error, mflags;
 
 	mtx_assert(MNT_MTX(mp), MA_OWNED);
 	error = 0;
@@ -1588,13 +1616,15 @@ vn_start_write_locked(struct mount *mp, int flags)
 	 */
 	if ((curthread->td_pflags & TDP_IGNSUSP) == 0 ||
 	    mp->mnt_susp_owner != curthread) {
+		mflags = ((mp->mnt_vfc->vfc_flags & VFCF_SBDRY) != 0 ?
+		    (flags & PCATCH) : 0) | (PUSER - 1);
 		while ((mp->mnt_kern_flag & MNTK_SUSPEND) != 0) {
 			if (flags & V_NOWAIT) {
 				error = EWOULDBLOCK;
 				goto unlock;
 			}
-			error = msleep(&mp->mnt_flag, MNT_MTX(mp),
-			    (PUSER - 1) | (flags & PCATCH), "suspfs", 0);
+			error = msleep(&mp->mnt_flag, MNT_MTX(mp), mflags,
+			    "suspfs", 0);
 			if (error)
 				goto unlock;
 		}
@@ -1617,6 +1647,9 @@ vn_start_write(vp, mpp, flags)
 {
 	struct mount *mp;
 	int error;
+
+	if (!vn_suspendable(vp, mpp))
+		return (0);
 
 	error = 0;
 	/*
@@ -1664,6 +1697,9 @@ vn_start_secondary_write(vp, mpp, flags)
 	struct mount *mp;
 	int error;
 
+	if (!vn_suspendable(vp, mpp))
+		return (0);
+
  retry:
 	if (vp != NULL) {
 		if ((error = VOP_GETWRITEMOUNT(vp, mpp)) != 0) {
@@ -1704,8 +1740,9 @@ vn_start_secondary_write(vp, mpp, flags)
 	/*
 	 * Wait for the suspension to finish.
 	 */
-	error = msleep(&mp->mnt_flag, MNT_MTX(mp),
-		       (PUSER - 1) | (flags & PCATCH) | PDROP, "suspfs", 0);
+	error = msleep(&mp->mnt_flag, MNT_MTX(mp), (PUSER - 1) | PDROP |
+	    ((mp->mnt_vfc->vfc_flags & VFCF_SBDRY) != 0 ? (flags & PCATCH) : 0),
+	    "suspfs", 0);
 	vfs_rel(mp);
 	if (error == 0)
 		goto retry;
@@ -1721,7 +1758,7 @@ void
 vn_finished_write(mp)
 	struct mount *mp;
 {
-	if (mp == NULL)
+	if (mp == NULL || !vn_suspendable_mp(mp))
 		return;
 	MNT_ILOCK(mp);
 	MNT_REL(mp);
@@ -1744,7 +1781,7 @@ void
 vn_finished_secondary_write(mp)
 	struct mount *mp;
 {
-	if (mp == NULL)
+	if (mp == NULL || !vn_suspendable_mp(mp))
 		return;
 	MNT_ILOCK(mp);
 	MNT_REL(mp);
@@ -1766,6 +1803,8 @@ int
 vfs_write_suspend(struct mount *mp, int flags)
 {
 	int error;
+
+	MPASS(vn_suspendable_mp(mp));
 
 	MNT_ILOCK(mp);
 	if (mp->mnt_susp_owner == curthread) {
@@ -1808,6 +1847,8 @@ void
 vfs_write_resume(struct mount *mp, int flags)
 {
 
+	MPASS(vn_suspendable_mp(mp));
+
 	MNT_ILOCK(mp);
 	if ((mp->mnt_kern_flag & MNTK_SUSPEND) != 0) {
 		KASSERT(mp->mnt_susp_owner == curthread, ("mnt_susp_owner"));
@@ -1841,6 +1882,7 @@ vfs_write_suspend_umnt(struct mount *mp)
 {
 	int error;
 
+	MPASS(vn_suspendable_mp(mp));
 	KASSERT((curthread->td_pflags & TDP_IGNSUSP) == 0,
 	    ("vfs_write_suspend_umnt: recursed"));
 
@@ -1848,8 +1890,10 @@ vfs_write_suspend_umnt(struct mount *mp)
 	for (;;) {
 		vn_finished_write(mp);
 		error = vfs_write_suspend(mp, 0);
-		if (error != 0)
+		if (error != 0) {
+			vn_start_write(NULL, &mp, V_WAIT);
 			return (error);
+		}
 		MNT_ILOCK(mp);
 		if ((mp->mnt_kern_flag & MNTK_SUSPENDED) != 0)
 			break;
@@ -2234,12 +2278,10 @@ vn_utimes_perm(struct vnode *vp, struct vattr *vap, struct ucred *cred,
 {
 	int error;
 
-	error = VOP_ACCESSX(vp, VWRITE_ATTRIBUTES, cred, td);
-
 	/*
-	 * From utimes(2):
-	 * Grant permission if the caller is the owner of the file or
-	 * the super-user.  If the time pointer is null, then write
+	 * Grant permission if the caller is the owner of the file, or
+	 * the super-user, or has ACL_WRITE_ATTRIBUTES permission on
+	 * on the file.  If the time pointer is null, then write
 	 * permission on the file is also sufficient.
 	 *
 	 * From NFSv4.1, draft 21, 6.2.1.3.1, Discussion of Mask Attributes:
@@ -2247,6 +2289,7 @@ vn_utimes_perm(struct vnode *vp, struct vattr *vap, struct ucred *cred,
 	 * will be allowed to set the times [..] to the current
 	 * server time.
 	 */
+	error = VOP_ACCESSX(vp, VWRITE_ATTRIBUTES, cred, td);
 	if (error != 0 && (vap->va_vaflags & VA_UTIMES_NULL) != 0)
 		error = VOP_ACCESS(vp, VWRITE, cred, td);
 	return (error);

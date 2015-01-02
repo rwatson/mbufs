@@ -6,7 +6,9 @@ PROG=	mkimg
 SRCS=	format.c image.c mkimg.c scheme.c
 MAN=	mkimg.1
 
-MKIMG_VERSION=20140927
+MKIMG_VERSION=20141211
+mkimg.o: Makefile
+
 CFLAGS+=-DMKIMG_VERSION=${MKIMG_VERSION}
 CFLAGS+=-DSPARSE_WRITE
 
@@ -29,8 +31,7 @@ SRCS+=	\
 
 BINDIR?=/usr/bin
 
-DPADD=	${LIBUTIL}
-LDADD=	-lutil
+LIBADD=	util
 
 WARNS?=	6
 

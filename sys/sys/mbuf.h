@@ -251,7 +251,7 @@ struct mbuf {
  * Flags preserved when copying m_pkthdr.
  */
 #define M_COPYFLAGS \
-    (M_PKTHDR|M_EOR|M_RDONLY|M_BCAST|M_MCAST|M_VLANTAG|M_PROMISC| \
+    (M_PKTHDR|M_EOR|M_RDONLY|M_BCAST|M_MCAST|M_PROMISC|M_VLANTAG|M_FLOWID| \
      M_PROTOFLAGS)
 
 /*
@@ -396,7 +396,7 @@ void sf_ext_free(void *, void *);
  * Outbound flags that are set by upper protocol layers requesting lower
  * layers, or ideally the hardware, to perform these offloading tasks.
  * For outbound packets this field and its flags can be directly tested
- * against if_data.ifi_hwassist.
+ * against ifnet if_hwassist.
  */
 #define	CSUM_IP			0x00000001	/* IP header checksum offload */
 #define	CSUM_IP_UDP		0x00000002	/* UDP checksum offload */
@@ -761,7 +761,10 @@ static __inline void
 m_clrprotoflags(struct mbuf *m)
 {
 
-	m->m_flags &= ~M_PROTOFLAGS;
+	while (m) {
+		m->m_flags &= ~M_PROTOFLAGS;
+		m = m->m_next;
+	}
 }
 
 static __inline struct mbuf *
@@ -953,7 +956,7 @@ struct mbuf	*m_copypacket(struct mbuf *, int);
 void		 m_copy_pkthdr(struct mbuf *, struct mbuf *);
 struct mbuf	*m_copyup(struct mbuf *, int, int);
 struct mbuf	*m_defrag(struct mbuf *, int);
-void		 m_demote(struct mbuf *, int);
+void		 m_demote(struct mbuf *, int, int);
 struct mbuf	*m_devget(char *, int, int, struct ifnet *,
 		    void (*)(char *, caddr_t, u_int));
 struct mbuf	*m_dup(struct mbuf *, int);

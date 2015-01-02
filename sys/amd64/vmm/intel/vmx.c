@@ -81,6 +81,8 @@ __FBSDID("$FreeBSD$");
 
 #define	PROCBASED_CTLS_ONE_SETTING 					\
 	(PROCBASED_SECONDARY_CONTROLS	|				\
+	 PROCBASED_MWAIT_EXITING	|				\
+	 PROCBASED_MONITOR_EXITING	|				\
 	 PROCBASED_IO_EXITING		|				\
 	 PROCBASED_MSR_BITMAPS		|				\
 	 PROCBASED_CTLS_WINDOW_SETTING	|				\
@@ -94,23 +96,18 @@ __FBSDID("$FreeBSD$");
 #define	PROCBASED_CTLS2_ONE_SETTING	PROCBASED2_ENABLE_EPT
 #define	PROCBASED_CTLS2_ZERO_SETTING	0
 
-#define VM_EXIT_CTLS_ONE_SETTING_NO_PAT					\
+#define	VM_EXIT_CTLS_ONE_SETTING					\
 	(VM_EXIT_HOST_LMA			|			\
 	VM_EXIT_SAVE_EFER			|			\
-	VM_EXIT_LOAD_EFER)
-
-#define	VM_EXIT_CTLS_ONE_SETTING					\
-	(VM_EXIT_CTLS_ONE_SETTING_NO_PAT       	|			\
+	VM_EXIT_LOAD_EFER			|			\
 	VM_EXIT_ACKNOWLEDGE_INTERRUPT		|			\
 	VM_EXIT_SAVE_PAT			|			\
 	VM_EXIT_LOAD_PAT)
+
 #define	VM_EXIT_CTLS_ZERO_SETTING	VM_EXIT_SAVE_DEBUG_CONTROLS
 
-#define	VM_ENTRY_CTLS_ONE_SETTING_NO_PAT	VM_ENTRY_LOAD_EFER
+#define	VM_ENTRY_CTLS_ONE_SETTING	(VM_ENTRY_LOAD_EFER | VM_ENTRY_LOAD_PAT)
 
-#define	VM_ENTRY_CTLS_ONE_SETTING					\
-	(VM_ENTRY_CTLS_ONE_SETTING_NO_PAT     	|			\
-	VM_ENTRY_LOAD_PAT)
 #define	VM_ENTRY_CTLS_ZERO_SETTING					\
 	(VM_ENTRY_LOAD_DEBUG_CONTROLS		|			\
 	VM_ENTRY_INTO_SMM			|			\
@@ -151,10 +148,6 @@ SYSCTL_INT(_hw_vmm_vmx, OID_AUTO, initialized, CTLFLAG_RD,
  * Optional capabilities
  */
 static SYSCTL_NODE(_hw_vmm_vmx, OID_AUTO, cap, CTLFLAG_RW, NULL, NULL);
-
-static int vmx_patmsr;
-SYSCTL_INT(_hw_vmm_vmx_cap, OID_AUTO, patmsr, CTLFLAG_RD, &vmx_patmsr, 0,
-    "PAT MSR saved and restored in VCMS");
 
 static int cap_halt_exit;
 SYSCTL_INT(_hw_vmm_vmx_cap, OID_AUTO, halt_exit, CTLFLAG_RD, &cap_halt_exit, 0,
@@ -290,8 +283,8 @@ exit_reason_to_str(int reason)
 		return "monitor";
 	case EXIT_REASON_PAUSE:
 		return "pause";
-	case EXIT_REASON_MCE:
-		return "mce";
+	case EXIT_REASON_MCE_DURING_ENTRY:
+		return "mce-during-entry";
 	case EXIT_REASON_TPR:
 		return "tpr";
 	case EXIT_REASON_APIC_ACCESS:
@@ -615,48 +608,24 @@ vmx_init(int ipinum)
 	}
 
 	/* Check support for VM-exit controls */
-	vmx_patmsr = 1;
 	error = vmx_set_ctlreg(MSR_VMX_EXIT_CTLS, MSR_VMX_TRUE_EXIT_CTLS,
 			       VM_EXIT_CTLS_ONE_SETTING,
 			       VM_EXIT_CTLS_ZERO_SETTING,
 			       &exit_ctls);
 	if (error) {
-		/* Try again without the PAT MSR bits */
-		error = vmx_set_ctlreg(MSR_VMX_EXIT_CTLS,
-				       MSR_VMX_TRUE_EXIT_CTLS,
-				       VM_EXIT_CTLS_ONE_SETTING_NO_PAT,
-				       VM_EXIT_CTLS_ZERO_SETTING,
-				       &exit_ctls);
-		if (error) {
-			printf("vmx_init: processor does not support desired "
-			       "exit controls\n");
-			return (error);
-		} else {
-			if (bootverbose)
-				printf("vmm: PAT MSR access not supported\n");
-			vmx_patmsr = 0;
-		}
+		printf("vmx_init: processor does not support desired "
+		    "exit controls\n");
+		return (error);
 	}
 
 	/* Check support for VM-entry controls */
-	if (vmx_patmsr) {
-		error = vmx_set_ctlreg(MSR_VMX_ENTRY_CTLS,
-				       MSR_VMX_TRUE_ENTRY_CTLS,
-				       VM_ENTRY_CTLS_ONE_SETTING,
-				       VM_ENTRY_CTLS_ZERO_SETTING,
-				       &entry_ctls);
-	} else {
-		error = vmx_set_ctlreg(MSR_VMX_ENTRY_CTLS,
-				       MSR_VMX_TRUE_ENTRY_CTLS,
-				       VM_ENTRY_CTLS_ONE_SETTING_NO_PAT,
-				       VM_ENTRY_CTLS_ZERO_SETTING,
-				       &entry_ctls);
-	}
-
+	error = vmx_set_ctlreg(MSR_VMX_ENTRY_CTLS, MSR_VMX_TRUE_ENTRY_CTLS,
+	    VM_ENTRY_CTLS_ONE_SETTING, VM_ENTRY_CTLS_ZERO_SETTING,
+	    &entry_ctls);
 	if (error) {
 		printf("vmx_init: processor does not support desired "
-		       "entry controls\n");
-		       return (error);
+		    "entry controls\n");
+		return (error);
 	}
 
 	/*
@@ -852,6 +821,7 @@ vmx_vminit(struct vm *vm, pmap_t pmap)
 	int i, error;
 	struct vmx *vmx;
 	struct vmcs *vmcs;
+	uint32_t exc_bitmap;
 
 	vmx = malloc(sizeof(struct vmx), M_VMX, M_WAITOK | M_ZERO);
 	if ((uintptr_t)vmx & PAGE_MASK) {
@@ -889,6 +859,10 @@ vmx_vminit(struct vm *vm, pmap_t pmap)
 	 * VM exit and entry respectively. It is also restored from the
 	 * host VMCS area on a VM exit.
 	 *
+	 * MSR_PAT is saved and restored in the guest VMCS are on a VM exit
+	 * and entry respectively. It is also restored from the host VMCS
+	 * area on a VM exit.
+	 *
 	 * The TSC MSR is exposed read-only. Writes are disallowed as that
 	 * will impact the host TSC.
 	 * XXX Writes would be implemented with a wrmsr trap, and
@@ -900,18 +874,9 @@ vmx_vminit(struct vm *vm, pmap_t pmap)
 	    guest_msr_rw(vmx, MSR_SYSENTER_ESP_MSR) ||
 	    guest_msr_rw(vmx, MSR_SYSENTER_EIP_MSR) ||
 	    guest_msr_rw(vmx, MSR_EFER) ||
+	    guest_msr_rw(vmx, MSR_PAT) ||
 	    guest_msr_ro(vmx, MSR_TSC))
 		panic("vmx_vminit: error setting guest msr access");
-
-	/*
-	 * MSR_PAT is saved and restored in the guest VMCS are on a VM exit
-	 * and entry respectively. It is also restored from the host VMCS
-	 * area on a VM exit. However, if running on a system with no
-	 * MSR_PAT save/restore support, leave access disabled so accesses
-	 * will be trapped.
-	 */
-	if (vmx_patmsr && guest_msr_rw(vmx, MSR_PAT))
-		panic("vmx_vminit: error setting guest pat msr access");
 
 	vpid_alloc(vpid, VM_MAXCPU);
 
@@ -947,6 +912,14 @@ vmx_vminit(struct vm *vm, pmap_t pmap)
 		error += vmwrite(VMCS_ENTRY_CTLS, entry_ctls);
 		error += vmwrite(VMCS_MSR_BITMAP, vtophys(vmx->msr_bitmap));
 		error += vmwrite(VMCS_VPID, vpid[i]);
+
+		/* exception bitmap */
+		if (vcpu_trace_exceptions(vm, i))
+			exc_bitmap = 0xffffffff;
+		else
+			exc_bitmap = 1 << IDT_MC;
+		error += vmwrite(VMCS_EXCEPTION_BITMAP, exc_bitmap);
+
 		if (virtual_interrupt_delivery) {
 			error += vmwrite(VMCS_APIC_ACCESS, APIC_ACCESS_ADDRESS);
 			error += vmwrite(VMCS_VIRTUAL_APIC,
@@ -1782,8 +1755,6 @@ inout_str_seginfo(struct vmx *vmx, int vcpuid, uint32_t inst_info, int in,
 
 	error = vmx_getdesc(vmx, vcpuid, vis->seg_name, &vis->seg_desc);
 	KASSERT(error == 0, ("%s: vmx_getdesc error %d", __func__, error));
-
-	/* XXX modify svm.c to update bit 16 of seg_desc.access (unusable) */
 }
 
 static void
@@ -1817,6 +1788,7 @@ vmexit_inst_emul(struct vm_exit *vmexit, uint64_t gpa, uint64_t gla)
 		vmexit->u.inst_emul.cs_d = 0;
 		break;
 	}
+	vie_init(&vmexit->u.inst_emul.vie, NULL, 0);
 }
 
 static int
@@ -2093,8 +2065,9 @@ vmx_exit_process(struct vmx *vmx, int vcpu, struct vm_exit *vmexit)
 	struct vlapic *vlapic;
 	struct vm_inout_str *vis;
 	struct vm_task_switch *ts;
+	struct vm_exception vmexc;
 	uint32_t eax, ecx, edx, idtvec_info, idtvec_err, intr_info, inst_info;
-	uint32_t intr_type, reason;
+	uint32_t intr_type, intr_vec, reason;
 	uint64_t exitintinfo, qual, gpa;
 	bool retu;
 
@@ -2109,6 +2082,18 @@ vmx_exit_process(struct vmx *vmx, int vcpu, struct vm_exit *vmexit)
 	vmexit->exitcode = VM_EXITCODE_BOGUS;
 
 	vmm_stat_incr(vmx->vm, vcpu, VMEXIT_COUNT, 1);
+
+	/*
+	 * VM-entry failures during or after loading guest state.
+	 *
+	 * These VM-exits are uncommon but must be handled specially
+	 * as most VM-exit fields are not populated as usual.
+	 */
+	if (__predict_false(reason == EXIT_REASON_MCE_DURING_ENTRY)) {
+		VCPU_CTR0(vmx->vm, vcpu, "Handling MCE during VM-entry");
+		__asm __volatile("int $18");
+		return (1);
+	}
 
 	/*
 	 * VM exits that can be triggered during event delivery need to
@@ -2342,6 +2327,9 @@ vmx_exit_process(struct vmx *vmx, int vcpu, struct vm_exit *vmexit)
 		KASSERT((intr_info & VMCS_INTR_VALID) != 0,
 		    ("VM exit interruption info invalid: %#x", intr_info));
 
+		intr_vec = intr_info & 0xff;
+		intr_type = intr_info & VMCS_INTR_T_MASK;
+
 		/*
 		 * If Virtual NMIs control is 1 and the VM-exit is due to a
 		 * fault encountered during the execution of IRET then we must
@@ -2352,16 +2340,55 @@ vmx_exit_process(struct vmx *vmx, int vcpu, struct vm_exit *vmexit)
 		 * See "Information for VM Exits Due to Vectored Events".
 		 */
 		if ((idtvec_info & VMCS_IDT_VEC_VALID) == 0 &&
-		    (intr_info & 0xff) != IDT_DF &&
+		    (intr_vec != IDT_DF) &&
 		    (intr_info & EXIT_QUAL_NMIUDTI) != 0)
 			vmx_restore_nmi_blocking(vmx, vcpu);
 
 		/*
 		 * The NMI has already been handled in vmx_exit_handle_nmi().
 		 */
-		if ((intr_info & VMCS_INTR_T_MASK) == VMCS_INTR_T_NMI)
+		if (intr_type == VMCS_INTR_T_NMI)
 			return (1);
-		break;
+
+		/*
+		 * Call the machine check handler by hand. Also don't reflect
+		 * the machine check back into the guest.
+		 */
+		if (intr_vec == IDT_MC) {
+			VCPU_CTR0(vmx->vm, vcpu, "Vectoring to MCE handler");
+			__asm __volatile("int $18");
+			return (1);
+		}
+
+		if (intr_vec == IDT_PF) {
+			error = vmxctx_setreg(vmxctx, VM_REG_GUEST_CR2, qual);
+			KASSERT(error == 0, ("%s: vmxctx_setreg(cr2) error %d",
+			    __func__, error));
+		}
+
+		/*
+		 * Software exceptions exhibit trap-like behavior. This in
+		 * turn requires populating the VM-entry instruction length
+		 * so that the %rip in the trap frame is past the INT3/INTO
+		 * instruction.
+		 */
+		if (intr_type == VMCS_INTR_T_SWEXCEPTION)
+			vmcs_write(VMCS_ENTRY_INST_LENGTH, vmexit->inst_length);
+
+		/* Reflect all other exceptions back into the guest */
+		bzero(&vmexc, sizeof(struct vm_exception));
+		vmexc.vector = intr_vec;
+		if (intr_info & VMCS_INTR_DEL_ERRCODE) {
+			vmexc.error_code_valid = 1;
+			vmexc.error_code = vmcs_read(VMCS_EXIT_INTR_ERRCODE);
+		}
+		VCPU_CTR2(vmx->vm, vcpu, "Reflecting exception %d/%#x into "
+		    "the guest", vmexc.vector, vmexc.error_code);
+		error = vm_inject_exception(vmx->vm, vcpu, &vmexc);
+		KASSERT(error == 0, ("%s: vm_inject_exception error %d",
+		    __func__, error));
+		return (1);
+
 	case EXIT_REASON_EPT_FAULT:
 		/*
 		 * If 'gpa' lies within the address space allocated to
@@ -2410,6 +2437,12 @@ vmx_exit_process(struct vmx *vmx, int vcpu, struct vm_exit *vmexit)
 		break;
 	case EXIT_REASON_XSETBV:
 		handled = vmx_emulate_xsetbv(vmx, vcpu, vmexit);
+		break;
+	case EXIT_REASON_MONITOR:
+		vmexit->exitcode = VM_EXITCODE_MONITOR;
+		break;
+	case EXIT_REASON_MWAIT:
+		vmexit->exitcode = VM_EXITCODE_MWAIT;
 		break;
 	default:
 		vmm_stat_incr(vmx->vm, vcpu, VMEXIT_UNKNOWN, 1);

@@ -1112,8 +1112,8 @@ core_output(struct vnode *vp, void *base, size_t len, off_t offset,
 #endif
 	} else {
 		error = vn_rdwr_inchunks(UIO_WRITE, vp, base, len, offset,
-		    UIO_USERSPACE, IO_UNIT | IO_DIRECT, active_cred, file_cred,
-		    NULL, td);
+		    UIO_USERSPACE, IO_UNIT | IO_DIRECT | IO_RANGELOCKED,
+		    active_cred, file_cred, NULL, td);
 	}
 	return (error);
 }
@@ -1160,8 +1160,8 @@ sbuf_drain_core_output(void *arg, const char *data, int len)
 #endif
 		error = vn_rdwr_inchunks(UIO_WRITE, p->vp,
 		    __DECONST(void *, data), len, p->offset, UIO_SYSSPACE,
-		    IO_UNIT | IO_DIRECT, p->active_cred, p->file_cred, NULL,
-		    p->td);
+		    IO_UNIT | IO_DIRECT | IO_RANGELOCKED, p->active_cred,
+		    p->file_cred, NULL, p->td);
 	if (locked)
 		PROC_LOCK(p->td->td_proc);
 	if (error != 0)
@@ -1587,7 +1587,50 @@ register_note(struct note_info_list *list, int type, outfunc_t out, void *arg)
 		return (size);
 
 	notesize = sizeof(Elf_Note) +		/* note header */
-	    roundup2(8, ELF_NOTE_ROUNDSIZE) +	/* note name ("FreeBSD") */
+	    roundup2(sizeof(FREEBSD_ABI_VENDOR), ELF_NOTE_ROUNDSIZE) +
+						/* note name */
+	    roundup2(size, ELF_NOTE_ROUNDSIZE);	/* note description */
+
+	return (notesize);
+}
+
+static size_t
+append_note_data(const void *src, void *dst, size_t len)
+{
+	size_t padded_len;
+
+	padded_len = roundup2(len, ELF_NOTE_ROUNDSIZE);
+	if (dst != NULL) {
+		bcopy(src, dst, len);
+		bzero((char *)dst + len, padded_len - len);
+	}
+	return (padded_len);
+}
+
+size_t
+__elfN(populate_note)(int type, void *src, void *dst, size_t size, void **descp)
+{
+	Elf_Note *note;
+	char *buf;
+	size_t notesize;
+
+	buf = dst;
+	if (buf != NULL) {
+		note = (Elf_Note *)buf;
+		note->n_namesz = sizeof(FREEBSD_ABI_VENDOR);
+		note->n_descsz = size;
+		note->n_type = type;
+		buf += sizeof(*note);
+		buf += append_note_data(FREEBSD_ABI_VENDOR, buf,
+		    sizeof(FREEBSD_ABI_VENDOR));
+		append_note_data(src, buf, size);
+		if (descp != NULL)
+			*descp = buf;
+	}
+
+	notesize = sizeof(Elf_Note) +		/* note header */
+	    roundup2(sizeof(FREEBSD_ABI_VENDOR), ELF_NOTE_ROUNDSIZE) +
+						/* note name */
 	    roundup2(size, ELF_NOTE_ROUNDSIZE);	/* note description */
 
 	return (notesize);
@@ -1604,13 +1647,13 @@ __elfN(putnote)(struct note_info *ninfo, struct sbuf *sb)
 		return;
 	}
 
-	note.n_namesz = 8; /* strlen("FreeBSD") + 1 */
+	note.n_namesz = sizeof(FREEBSD_ABI_VENDOR);
 	note.n_descsz = ninfo->outsize;
 	note.n_type = ninfo->type;
 
 	sbuf_bcat(sb, &note, sizeof(note));
 	sbuf_start_section(sb, &old_len);
-	sbuf_bcat(sb, "FreeBSD", note.n_namesz);
+	sbuf_bcat(sb, FREEBSD_ABI_VENDOR, sizeof(FREEBSD_ABI_VENDOR));
 	sbuf_end_section(sb, old_len, ELF_NOTE_ROUNDSIZE, 0);
 	if (note.n_descsz == 0)
 		return;
@@ -1757,7 +1800,7 @@ __elfN(note_threadmd)(void *arg, struct sbuf *sb, size_t *sizep)
 		buf = NULL;
 	size = 0;
 	__elfN(dump_thread)(td, buf, &size);
-	KASSERT(*sizep == size, ("invalid size"));
+	KASSERT(sb == NULL || *sizep == size, ("invalid size"));
 	if (size != 0 && sb != NULL)
 		sbuf_bcat(sb, buf, size);
 	free(buf, M_TEMP);

@@ -29,11 +29,23 @@ NO_WSOMETIMES_UNINITIALIZED=	-Wno-error-sometimes-uninitialized
 # enough to error out the whole kernel build.  Display them anyway, so there is
 # some incentive to fix them eventually.
 CWARNEXTRA?=	-Wno-error-tautological-compare -Wno-error-empty-body \
-		-Wno-error-parentheses-equality -Wno-error-unused-function
+		-Wno-error-parentheses-equality -Wno-error-unused-function \
+		-Wno-error-pointer-sign -Wno-error-format -Wno-error-parentheses \
+		-Wno-error-switch -Wno-error-switch \
+		-Wno-error-shift-count-negative \
+		-Wno-error-shift-count-overflow \
+		-Wno-error-constant-conversion
 .endif
 
 .if ${COMPILER_TYPE} == "gcc" && ${COMPILER_VERSION} >= 40300
-CWARNEXTRA?=	-Wno-inline
+# Catch-all for all the things that are in our tree, but for which we're
+# not yet ready for this compiler. Note: we likely only really "support"
+# building with gcc 4.8 and newer. Nothing older has been tested.
+CWARNEXTRA?=	-Wno-error=inline -Wno-error=enum-compare -Wno-error=unused-but-set-variable \
+		-Wno-error=aggressive-loop-optimizations -Wno-error=maybe-uninitialized \
+		-Wno-error=array-bounds -Wno-error=address \
+		-Wno-error=cast-qual -Wno-error=sequence-point -Wno-error=attributes \
+		-Wno-error=strict-overflow -Wno-error=overflow
 .endif
 
 # External compilers may not support our format extensions.  Allow them
@@ -157,4 +169,34 @@ CFLAGS+=	-fstack-protector
 CFLAGS+=	-gdwarf-2
 .endif
 
+CFLAGS+= ${CWARNEXTRA}
+
 CFLAGS+= ${CFLAGS.${COMPILER_TYPE}}
+
+# Tell bmake not to mistake standard targets for things to be searched for
+# or expect to ever be up-to-date.
+PHONY_NOTMAIN = afterdepend afterinstall all beforedepend beforeinstall \
+		beforelinking build build-tools buildfiles buildincludes \
+		checkdpadd clean cleandepend cleandir cleanobj configure \
+		depend dependall distclean distribute exe \
+		html includes install installfiles installincludes lint \
+		obj objlink objs objwarn realall realdepend \
+		realinstall regress subdir-all subdir-depend subdir-install \
+		tags whereobj
+
+.PHONY: ${PHONY_NOTMAIN}
+.NOTMAIN: ${PHONY_NOTMAIN}
+
+CSTD=		c99
+
+.if ${CSTD} == "k&r"
+CFLAGS+=        -traditional
+.elif ${CSTD} == "c89" || ${CSTD} == "c90"
+CFLAGS+=        -std=iso9899:1990
+.elif ${CSTD} == "c94" || ${CSTD} == "c95"
+CFLAGS+=        -std=iso9899:199409
+.elif ${CSTD} == "c99"
+CFLAGS+=        -std=iso9899:1999
+.else # CSTD
+CFLAGS+=        -std=${CSTD}
+.endif # CSTD
