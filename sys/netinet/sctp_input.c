@@ -5968,6 +5968,9 @@ out:
 }
 
 #if 0
+/*
+ * XXXRW: perhaps just print M_START() and M_SIZE() here?
+ */
 static void
 sctp_print_mbuf_chain(struct mbuf *m)
 {
