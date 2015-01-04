@@ -2441,6 +2441,7 @@ sctp_handle_cookie_echo(struct mbuf *m, int iphlen, int offset,
 		/* out of memory or ?? */
 		return (NULL);
 	}
+#if 0
 #ifdef SCTP_MBUF_LOGGING
 	if (SCTP_BASE_SYSCTL(sctp_logging_level) & SCTP_MBUF_LOGGING_ENABLE) {
 		struct mbuf *mat;
@@ -2451,6 +2452,7 @@ sctp_handle_cookie_echo(struct mbuf *m, int iphlen, int offset,
 			}
 		}
 	}
+#endif
 #endif
 
 	/*
@@ -5499,6 +5501,7 @@ process_control_chunks:
 						if (sctp_pad_lastmbuf(SCTP_BUF_NEXT(mm), SCTP_SIZE32(len) - len, NULL) == NULL) {
 							sctp_m_freem(mm);
 						} else {
+#if 0
 #ifdef SCTP_MBUF_LOGGING
 							if (SCTP_BASE_SYSCTL(sctp_logging_level) & SCTP_MBUF_LOGGING_ENABLE) {
 								struct mbuf *mat;
@@ -5509,6 +5512,7 @@ process_control_chunks:
 									}
 								}
 							}
+#endif
 #endif
 							sctp_queue_op_err(stcb, mm);
 						}
@@ -6010,6 +6014,7 @@ sctp_input_with_port(struct mbuf *i_pak, int off, uint16_t port)
 		return;
 	}
 	m = SCTP_HEADER_TO_CHAIN(i_pak);
+#if 0
 #ifdef SCTP_MBUF_LOGGING
 	/* Log in any input mbufs */
 	if (SCTP_BASE_SYSCTL(sctp_logging_level) & SCTP_MBUF_LOGGING_ENABLE) {
@@ -6021,6 +6026,7 @@ sctp_input_with_port(struct mbuf *i_pak, int off, uint16_t port)
 			}
 		}
 	}
+#endif
 #endif
 #ifdef SCTP_PACKET_LOGGING
 	if (SCTP_BASE_SYSCTL(sctp_logging_level) & SCTP_LAST_PACKET_TRACING) {

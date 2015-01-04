@@ -1491,6 +1491,7 @@ sctp_process_a_data_chunk(struct sctp_tcb *stcb, struct sctp_association *asoc,
 		dmbuf = SCTP_M_COPYM(*m,
 		    (offset + sizeof(struct sctp_data_chunk)),
 		    the_len, M_NOWAIT);
+#if 0
 #ifdef SCTP_MBUF_LOGGING
 		if (SCTP_BASE_SYSCTL(sctp_logging_level) & SCTP_MBUF_LOGGING_ENABLE) {
 			struct mbuf *mat;
@@ -1501,6 +1502,7 @@ sctp_process_a_data_chunk(struct sctp_tcb *stcb, struct sctp_association *asoc,
 				}
 			}
 		}
+#endif
 #endif
 	} else {
 		/* We can steal the last chunk */

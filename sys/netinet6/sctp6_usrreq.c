@@ -91,6 +91,7 @@ sctp6_input_with_port(struct mbuf **i_pak, int *offp, uint16_t port)
 		return (IPPROTO_DONE);
 	}
 	m = SCTP_HEADER_TO_CHAIN(*i_pak);
+#if 0
 #ifdef SCTP_MBUF_LOGGING
 	/* Log in any input mbufs */
 	if (SCTP_BASE_SYSCTL(sctp_logging_level) & SCTP_MBUF_LOGGING_ENABLE) {
@@ -102,6 +103,7 @@ sctp6_input_with_port(struct mbuf **i_pak, int *offp, uint16_t port)
 			}
 		}
 	}
+#endif
 #endif
 #ifdef SCTP_PACKET_LOGGING
 	if (SCTP_BASE_SYSCTL(sctp_logging_level) & SCTP_LAST_PACKET_TRACING) {
