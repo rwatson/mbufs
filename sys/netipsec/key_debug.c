@@ -644,7 +644,7 @@ kdebug_mbufhdr(struct mbuf *m)
 		    m->m_pkthdr.len, m->m_pkthdr.rcvif);
 	}
 
-	if (m->m_flags & M_EXT) {
+	if (m->m_flags & _M_EXT) {
 		printf("  m_ext{ ext_buf:%p ext_free:%p "
 		       "ext_size:%u ext_cnt:%p }\n",
 			m->m_ext.ext_buf, m->m_ext.ext_free,
