@@ -832,7 +832,7 @@ m_last(struct mbuf *m)
 	 MLEN)
 
 /*
- * Set the m_data pointer of a newly-allocated mbuf to place an object of the
+ * Set the m_data pointer of a newly allocated mbuf to place an object of the
  * specified size at the end of the mbuf, longword aligned.
  *
  * NB: Historically, we had M_ALIGN(), MH_ALIGN(), and MEXT_ALIGN() as
