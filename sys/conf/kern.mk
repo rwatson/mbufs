@@ -7,6 +7,7 @@ CWARNFLAGS?=	-Wall -Wredundant-decls -Wnested-externs -Wstrict-prototypes \
 		-Wmissing-prototypes -Wpointer-arith -Winline -Wcast-qual \
 		-Wundef -Wno-pointer-sign ${FORMAT_EXTENSIONS} \
 		-Wmissing-include-dirs -fdiagnostics-show-option \
+		-Wno-unknown-pragmas \
 		${CWARNEXTRA}
 #
 # The following flags are next up for working on:
@@ -17,12 +18,9 @@ CWARNFLAGS?=	-Wall -Wredundant-decls -Wnested-externs -Wstrict-prototypes \
 # a false positive.
 .if ${COMPILER_TYPE} == "clang"
 NO_WCONSTANT_CONVERSION=	-Wno-constant-conversion
-NO_WARRAY_BOUNDS=		-Wno-array-bounds
 NO_WSHIFT_COUNT_NEGATIVE=	-Wno-shift-count-negative
 NO_WSHIFT_COUNT_OVERFLOW=	-Wno-shift-count-overflow
-NO_WUNUSED_VALUE=		-Wno-unused-value
 NO_WSELF_ASSIGN=		-Wno-self-assign
-NO_WFORMAT_SECURITY=		-Wno-format-security
 NO_WUNNEEDED_INTERNAL_DECL=	-Wno-unneeded-internal-declaration
 NO_WSOMETIMES_UNINITIALIZED=	-Wno-error-sometimes-uninitialized
 # Several other warnings which might be useful in some cases, but not severe
@@ -30,14 +28,11 @@ NO_WSOMETIMES_UNINITIALIZED=	-Wno-error-sometimes-uninitialized
 # some incentive to fix them eventually.
 CWARNEXTRA?=	-Wno-error-tautological-compare -Wno-error-empty-body \
 		-Wno-error-parentheses-equality -Wno-error-unused-function \
-		-Wno-error-pointer-sign -Wno-error-format -Wno-error-parentheses \
-		-Wno-error-switch -Wno-error-switch \
-		-Wno-error-shift-count-negative \
-		-Wno-error-shift-count-overflow \
-		-Wno-error-constant-conversion
+		-Wno-error-pointer-sign -Wno-error-format -Wno-error-parentheses
 .endif
 
-.if ${COMPILER_TYPE} == "gcc" && ${COMPILER_VERSION} >= 40300
+.if ${COMPILER_TYPE} == "gcc"
+.if ${COMPILER_VERSION} >= 40300
 # Catch-all for all the things that are in our tree, but for which we're
 # not yet ready for this compiler. Note: we likely only really "support"
 # building with gcc 4.8 and newer. Nothing older has been tested.
@@ -46,6 +41,10 @@ CWARNEXTRA?=	-Wno-error=inline -Wno-error=enum-compare -Wno-error=unused-but-set
 		-Wno-error=array-bounds -Wno-error=address \
 		-Wno-error=cast-qual -Wno-error=sequence-point -Wno-error=attributes \
 		-Wno-error=strict-overflow -Wno-error=overflow
+.else
+# For gcc 4.2, eliminate the too-often-wrong warnings about uninitialized vars.
+CWARNEXTRA?=	-Wno-uninitialized
+.endif
 .endif
 
 # External compilers may not support our format extensions.  Allow them
@@ -200,3 +199,6 @@ CFLAGS+=        -std=iso9899:1999
 .else # CSTD
 CFLAGS+=        -std=${CSTD}
 .endif # CSTD
+
+# Pull in any CWARNFLAGS the modules have added.
+CFLAGS+= ${CWARNFLAGS} ${CWARNFLAGS.${.IMPSRC:T}}
