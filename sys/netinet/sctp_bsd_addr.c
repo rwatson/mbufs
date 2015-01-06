@@ -33,6 +33,8 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#define	MBUF_PRIVATE
+
 #include <netinet/sctp_os.h>
 #include <netinet/sctp_var.h>
 #include <netinet/sctp_pcb.h>
@@ -390,7 +392,6 @@ sctp_get_mbuf_for_msg(unsigned int space_needed, int want_header,
 		sctp_m_freem(SCTP_BUF_NEXT(m));
 		SCTP_BUF_NEXT(m) = NULL;
 	}
-#if 0
 #ifdef SCTP_MBUF_LOGGING
 	if (SCTP_BASE_SYSCTL(sctp_logging_level) & SCTP_MBUF_LOGGING_ENABLE) {
 		/* XXXRW: How to handle this post-M_EXT? */
@@ -398,7 +399,6 @@ sctp_get_mbuf_for_msg(unsigned int space_needed, int want_header,
 			sctp_log_mb(m, SCTP_MBUF_IALLOC);
 		}
 	}
-#endif
 #endif
 	return (m);
 }
