@@ -46,7 +46,6 @@
 /*
  * First define what the actual subs. return
  */
-#define	NFSMSIZ(m)		M_SIZE(m)
 #define	NFSM_DATAP(m, s)	(m)->m_data += (s)
 
 /*

@@ -47,11 +47,6 @@
  */
 
 /*
- * First define what the actual subs. return
- */
-#define	NFSMSIZ(m)	M_SIZE(m)
-
-/*
  * Now for the macros that do the simple stuff and call the functions
  * for the hard stuff.
  * These macros use several vars. declared in nfsm_reqhead and these
