@@ -538,7 +538,7 @@ cm_srint_locked(vsc)
 	 * first +2 bytes for align fixup below
 	 * second +2 bytes are for src/dst addresses
 	 */
-	if ((len + 2 + 2) > MHLEN) {
+	if ((len + 2 + 2) > M_SIZE(m)) {
 		/* attach an mbuf cluster */
 		if (!(MCLGET(m, M_NOWAIT))) {
 			if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);

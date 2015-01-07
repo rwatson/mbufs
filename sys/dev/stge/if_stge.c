@@ -1603,7 +1603,7 @@ stge_fixup_rx(struct stge_softc *sc, struct mbuf *m)
 	struct mbuf *n;
 
 	n = NULL;
-	if (m->m_len <= (MCLBYTES - ETHER_HDR_LEN)) {
+	if (m->m_len <= (M_SIZE(m) - ETHER_HDR_LEN)) {
 		bcopy(m->m_data, m->m_data + ETHER_HDR_LEN, m->m_len);
 		m->m_data += ETHER_HDR_LEN;
 		n = m;
@@ -2441,12 +2441,12 @@ stge_newbuf(struct stge_softc *sc, int idx)
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 	if (m == NULL)
 		return (ENOBUFS);
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	/*
 	 * The hardware requires 4bytes aligned DMA address when JUMBO
 	 * frame is used.
 	 */
-	if (sc->sc_if_framesize <= (MCLBYTES - ETHER_ALIGN))
+	if (sc->sc_if_framesize <= (M_SIZE(m) - ETHER_ALIGN))
 		m_adj(m, ETHER_ALIGN);
 
 	if (bus_dmamap_load_mbuf_sg(sc->sc_cdata.stge_rx_tag,

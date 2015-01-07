@@ -481,8 +481,7 @@ cgem_fill_rqueue(struct cgem_softc *sc)
 		if (m == NULL)
 			break;
 
-		m->m_len = MCLBYTES;
-		m->m_pkthdr.len = MCLBYTES;
+		m->m_len = m->m_pkthdr.len = M_SIZE(m);
 		m->m_pkthdr.rcvif = sc->ifp;
 
 		/* Load map and plug in physical address. */

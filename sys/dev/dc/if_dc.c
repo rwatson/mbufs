@@ -2654,7 +2654,7 @@ dc_newbuf(struct dc_softc *sc, int i)
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 	if (m == NULL)
 		return (ENOBUFS);
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, sizeof(u_int64_t));
 
 	/*

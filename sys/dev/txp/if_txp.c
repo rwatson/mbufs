@@ -1021,7 +1021,8 @@ txp_rxbuf_reclaim(struct txp_softc *sc)
 		sd->sd_mbuf = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 		if (sd->sd_mbuf == NULL)
 			break;
-		sd->sd_mbuf->m_pkthdr.len = sd->sd_mbuf->m_len = MCLBYTES;
+		sd->sd_mbuf->m_pkthdr.len = sd->sd_mbuf->m_len =
+		    M_SIZE(sd->sd_mbuf);
 #ifndef __NO_STRICT_ALIGNMENT
 		m_adj(sd->sd_mbuf, TXP_RXBUF_ALIGN);
 #endif
@@ -1808,7 +1809,8 @@ txp_rxring_fill(struct txp_softc *sc)
 		sd->sd_mbuf = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 		if (sd->sd_mbuf == NULL)
 			return (ENOMEM);
-		sd->sd_mbuf->m_pkthdr.len = sd->sd_mbuf->m_len = MCLBYTES;
+		sd->sd_mbuf->m_pkthdr.len = sd->sd_mbuf->m_len =
+		    M_SIZE(sd->sd_mbuf);
 #ifndef __NO_STRICT_ALIGNMENT
 		m_adj(sd->sd_mbuf, TXP_RXBUF_ALIGN);
 #endif

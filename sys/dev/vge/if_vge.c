@@ -1251,7 +1251,7 @@ vge_newbuf(struct vge_softc *sc, int prod)
 	 * This is slightly more efficient than allocating a new buffer,
 	 * copying the contents, and discarding the old buffer.
 	 */
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, VGE_RX_BUF_ALIGN);
 
 	if (bus_dmamap_load_mbuf_sg(sc->vge_cdata.vge_rx_tag,
@@ -1472,7 +1472,7 @@ vge_rxeof(struct vge_softc *sc, int count)
 				vge_discard_rxbuf(sc, prod);
 				continue;
 			}
-			m->m_len = MCLBYTES - VGE_RX_BUF_ALIGN;
+			m->m_len = M_SIZE(m) - VGE_RX_BUF_ALIGN;
 			if (sc->vge_cdata.vge_head == NULL) {
 				sc->vge_cdata.vge_head = m;
 				sc->vge_cdata.vge_tail = m;
@@ -1517,7 +1517,7 @@ vge_rxeof(struct vge_softc *sc, int count)
 
 		/* Chain received mbufs. */
 		if (sc->vge_cdata.vge_head != NULL) {
-			m->m_len = total_len % (MCLBYTES - VGE_RX_BUF_ALIGN);
+			m->m_len = total_len % (M_SIZE(m) - VGE_RX_BUF_ALIGN);
 			/*
 			 * Special case: if there's 4 bytes or less
 			 * in this buffer, the mbuf can be discarded:

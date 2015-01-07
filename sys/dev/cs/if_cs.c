@@ -715,7 +715,7 @@ cs_get_packet(struct cs_softc *sc)
 	if (m==NULL)
 		return (-1);
 
-	if (length > MHLEN) {
+	if (length > M_SIZE(m)) {
 		if (!(MCLGET(m, M_NOWAIT))) {
 			m_freem(m);
 			return (-1);

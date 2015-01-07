@@ -1083,8 +1083,9 @@ ieee80211_mbuf_adjust(struct ieee80211vap *vap, int hdrsize,
 			m_freem(m);
 			return NULL;
 		}
-		KASSERT(needed_space <= MHLEN,
-		    ("not enough room, need %u got %d\n", needed_space, MHLEN));
+		KASSERT(needed_space <= M_SIZE(n),
+		    ("not enough room, need %u got %d\n", needed_space,
+		    M_SIZE(n)));
 		/*
 		 * Setup new mbuf to have leading space to prepend the
 		 * 802.11 header and any crypto header bits that are

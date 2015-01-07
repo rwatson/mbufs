@@ -741,12 +741,12 @@ ex_rx_intr(struct ex_softc *sc)
 			} else {
 				ipkt->m_pkthdr.rcvif = ifp;
 				ipkt->m_pkthdr.len = pkt_len;
-				ipkt->m_len = MHLEN;
+				ipkt->m_len = M_SIZE(ipkt);
 
 				while (pkt_len > 0) {
 					if (pkt_len >= MINCLSIZE) {
 						if (MCLGET(m, M_NOWAIT)) {
-							m->m_len = MCLBYTES;
+							m->m_len = M_SIZE(m);
 						} else {
 							m_freem(ipkt);
 							if_inc_counter(ifp, IFCOUNTER_IQDROPS, 1);
@@ -776,7 +776,7 @@ ex_rx_intr(struct ex_softc *sc)
 							goto rx_another;
 						}
 						m = m->m_next;
-						m->m_len = MLEN;
+						m->m_len = M_SIZE(m);
 					}
 				}
 				eh = mtod(ipkt, struct ether_header *);

@@ -2338,7 +2338,7 @@ et_newbuf_cluster(struct et_rxbuf_data *rbd, int buf_idx)
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 	if (m == NULL)
 		return (ENOBUFS);
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, ETHER_ALIGN);
 
 	sc = rbd->rbd_softc;
@@ -2397,7 +2397,7 @@ et_newbuf_hdr(struct et_rxbuf_data *rbd, int buf_idx)
 	MGETHDR(m, M_NOWAIT, MT_DATA);
 	if (m == NULL)
 		return (ENOBUFS);
-	m->m_len = m->m_pkthdr.len = MHLEN;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, ETHER_ALIGN);
 
 	sc = rbd->rbd_softc;

@@ -483,7 +483,7 @@ ng_vjc_rcvdata(hook_p hook, item_p item)
 		}
 		hm->m_len = 0;
 		hm->m_pkthdr.rcvif = NULL;
-		if (hlen > MHLEN) {		/* unlikely, but can happen */
+		if (hlen > M_SIZE(hm)) {	/* unlikely, but can happen */
 			if (!(MCLGET(hm, M_NOWAIT))) {
 				m_freem(hm);
 				priv->slc.sls_errorin++;

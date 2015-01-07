@@ -1321,7 +1321,7 @@ ed_get_packet(struct ed_softc *sc, bus_size_t buf, u_short len)
 	 * to the header. The +2 is to compensate for the alignment
 	 * fixup below.
 	 */
-	if ((len + 2) > MHLEN) {
+	if ((len + 2) > M_SIZE(m)) {
 		/* Attach an mbuf cluster */
 		if (!(MCLGET(m, M_NOWAIT))) {
 			m_freem(m);

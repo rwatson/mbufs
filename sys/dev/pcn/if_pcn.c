@@ -807,12 +807,11 @@ pcn_newbuf(sc, idx, m)
 			m_freem(m_new);
 			return(ENOBUFS);
 		}
-		m_new->m_len = m_new->m_pkthdr.len = MCLBYTES;
 	} else {
 		m_new = m;
-		m_new->m_len = m_new->m_pkthdr.len = MCLBYTES;
 		m_new->m_data = m_new->m_ext.ext_buf;
 	}
+	m_new->m_len = m_new->m_pkthdr.len = M_SIZE(m_new);
 
 	m_adj(m_new, ETHER_ALIGN);
 

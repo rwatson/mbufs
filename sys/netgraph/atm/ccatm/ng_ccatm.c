@@ -962,7 +962,7 @@ pack_buf(void *h, size_t hlen, void *t, size_t tlen)
 	if (m0 == NULL)
 		return NULL;
 
-	KASSERT(hlen <= MHLEN, ("hlen > MHLEN"));
+	KASSERT(hlen <= M_SIZE(m0), ("hlen > M_SIZE(m0)"));
 
 	bcopy(h, m0->m_data, hlen);
 	m0->m_len = hlen;

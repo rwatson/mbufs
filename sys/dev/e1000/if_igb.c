@@ -4209,8 +4209,7 @@ igb_refresh_mbufs(struct rx_ring *rxr, int limit)
 		} else
 			mh = rxbuf->m_head;
 
-		mh->m_pkthdr.len = mh->m_len = MHLEN;
-		mh->m_len = MHLEN;
+		mh->m_pkthdr.len = mh->m_len = M_SIZE(mh);
 		mh->m_flags |= M_PKTHDR;
 		/* Get the memory mapping */
 		error = bus_dmamap_load_mbuf_sg(rxr->htag,
@@ -4450,7 +4449,7 @@ igb_setup_receive_ring(struct rx_ring *rxr)
 		}
 		m_adj(rxbuf->m_head, ETHER_ALIGN);
 		mh = rxbuf->m_head;
-		mh->m_len = mh->m_pkthdr.len = MHLEN;
+		mh->m_len = mh->m_pkthdr.len = M_SIZE(mh);
 		mh->m_flags |= M_PKTHDR;
 		/* Get the memory mapping */
 		error = bus_dmamap_load_mbuf_sg(rxr->htag,

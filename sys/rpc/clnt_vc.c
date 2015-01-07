@@ -343,7 +343,7 @@ call_again:
 	 */
 	mreq = m_gethdr(M_WAITOK, MT_DATA);
 	mreq->m_data += sizeof(uint32_t);
-	KASSERT(ct->ct_mpos + sizeof(uint32_t) <= MHLEN,
+	KASSERT(ct->ct_mpos + sizeof(uint32_t) <= M_SIZE(mreq),
 	    ("RPC header too big"));
 	bcopy(ct->ct_mcallc, mreq->m_data, ct->ct_mpos);
 	mreq->m_len = ct->ct_mpos;

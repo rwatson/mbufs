@@ -905,7 +905,7 @@ msk_newbuf(struct msk_if_softc *sc_if, int idx)
 	if (m == NULL)
 		return (ENOBUFS);
 
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	if ((sc_if->msk_flags & MSK_FLAG_RAMBUF) == 0)
 		m_adj(m, ETHER_ALIGN);
 #ifndef __NO_STRICT_ALIGNMENT

@@ -1244,7 +1244,7 @@ outer:
 			m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 			if (m == NULL)
 				return (rx_npkts);
-			m->m_len = m->m_pkthdr.len = MCLBYTES;
+			m->m_len = m->m_pkthdr.len = M_SIZE(m);
 			/* Make sure upper layers will be aligned. */
 			m_adj(m, ETHER_ALIGN);
 			sc->atse_rx_m = m;

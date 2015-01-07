@@ -1874,14 +1874,12 @@ hifn_crypto(
 			 */
 			totlen = cmd->src_mapsize;
 			if (cmd->src_m->m_flags & M_PKTHDR) {
-				len = MHLEN;
 				MGETHDR(m0, M_NOWAIT, MT_DATA);
 				if (m0 && !m_dup_pkthdr(m0, cmd->src_m, M_NOWAIT)) {
 					m_free(m0);
 					m0 = NULL;
 				}
 			} else {
-				len = MLEN;
 				MGET(m0, M_NOWAIT, MT_DATA);
 			}
 			if (m0 == NULL) {
@@ -1889,6 +1887,7 @@ hifn_crypto(
 				err = sc->sc_cmdu ? ERESTART : ENOMEM;
 				goto err_srcmap;
 			}
+			len = M_SIZE(m0);
 			if (totlen >= MINCLSIZE) {
 				if (!(MCLGET(m0, M_NOWAIT))) {
 					hifnstats.hst_nomem_mcl++;
@@ -1910,7 +1909,6 @@ hifn_crypto(
 					m_freem(m0);
 					goto err_srcmap;
 				}
-				len = MLEN;
 				if (totlen >= MINCLSIZE) {
 					if (!(MCLGET(m, M_NOWAIT))) {
 						hifnstats.hst_nomem_mcl++;
@@ -1919,8 +1917,8 @@ hifn_crypto(
 						m_freem(m0);
 						goto err_srcmap;
 					}
-					len = MCLBYTES;
 				}
+				len = M_SIZE(m);
 
 				m->m_len = len;
 				m0->m_pkthdr.len += len;

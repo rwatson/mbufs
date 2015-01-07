@@ -569,7 +569,8 @@ tcp_twrespond(struct tcptw *tw, int flags)
 	m->m_len = hdrlen + optlen;
 	m->m_pkthdr.len = m->m_len;
 
-	KASSERT(max_linkhdr + m->m_len <= MHLEN, ("tcptw: mbuf too small"));
+	KASSERT(max_linkhdr + m->m_len <= M_SIZE(m),
+	    ("tcptw: mbuf too small"));
 
 	th->th_seq = htonl(tw->snd_nxt);
 	th->th_ack = htonl(tw->rcv_nxt);

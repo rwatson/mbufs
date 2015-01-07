@@ -1320,7 +1320,7 @@ ng_pppoe_rcvdata_ether(hook_p hook, item_p item)
 		 * of a buffer and make a mess.
 		 * (Linux wouldn't have this problem).
 		 */
-		if (m->m_pkthdr.len <= MHLEN) {
+		if (m->m_pkthdr.len <= M_SIZE(m)) {
 			if( m->m_len < m->m_pkthdr.len) {
 				m = m_pullup(m, m->m_pkthdr.len);
 				if (m == NULL) {

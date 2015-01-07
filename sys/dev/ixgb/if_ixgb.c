@@ -1792,12 +1792,11 @@ ixgb_get_buf(int i, struct adapter * adapter,
 			adapter->mbuf_alloc_failed++;
 			return (ENOBUFS);
 		}
-		mp->m_len = mp->m_pkthdr.len = MCLBYTES;
 	} else {
-		mp->m_len = mp->m_pkthdr.len = MCLBYTES;
 		mp->m_data = mp->m_ext.ext_buf;
 		mp->m_next = NULL;
 	}
+	mp->m_len = mp->m_pkthdr.len = M_SIZE(mp);
 
 	if (ifp->if_mtu <= ETHERMTU) {
 		m_adj(mp, ETHER_ALIGN);

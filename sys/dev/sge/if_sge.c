@@ -1087,7 +1087,7 @@ sge_newbuf(struct sge_softc *sc, int prod)
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 	if (m == NULL)
 		return (ENOBUFS);
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, SGE_RX_BUF_ALIGN);
 	error = bus_dmamap_load_mbuf_sg(cd->sge_rxmbuf_tag,
 	    cd->sge_rx_spare_map, m, segs, &nsegs, 0);

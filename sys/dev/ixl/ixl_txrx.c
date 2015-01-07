@@ -941,9 +941,8 @@ ixl_refresh_mbufs(struct ixl_queue *que, int limit)
 		} else
 			mh = buf->m_head;
 
-		mh->m_pkthdr.len = mh->m_len = MHLEN;
-		mh->m_len = MHLEN;
-		mh->m_flags |= M_PKTHDR;
+		mh->m_flags |= M_PKTHDR;	/* XXXRW: Redundant? */
+		mh->m_pkthdr.len = mh->m_len = M_SIZE(mh);
 		/* Get the memory mapping */
 		error = bus_dmamap_load_mbuf_sg(rxr->htag,
 		    buf->hmap, mh, hseg, &nsegs, BUS_DMA_NOWAIT);
@@ -1147,8 +1146,8 @@ ixl_init_rx_ring(struct ixl_queue *que)
 		}
 		m_adj(buf->m_head, ETHER_ALIGN);
 		mh = buf->m_head;
-		mh->m_len = mh->m_pkthdr.len = MHLEN;
-		mh->m_flags |= M_PKTHDR;
+		mh->m_flags |= M_PKTHDR;	/* XXXRW: Redundant? */
+		mh->m_len = mh->m_pkthdr.len = M_SIZE(mh);
 		/* Get the memory mapping */
 		error = bus_dmamap_load_mbuf_sg(rxr->htag,
 		    buf->hmap, buf->m_head, hseg,

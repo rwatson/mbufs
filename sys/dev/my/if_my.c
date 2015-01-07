@@ -1350,7 +1350,7 @@ my_encap(struct my_softc * sc, struct my_chain * c, struct mbuf * m_head)
 		device_printf(sc->my_dev, "no memory for tx list");
 		return (1);
 	}
-	if (m_head->m_pkthdr.len > MHLEN) {
+	if (m_head->m_pkthdr.len > M_SIZE(m_new)) {
 		if (!(MCLGET(m_new, M_NOWAIT))) {
 			m_freem(m_new);
 			device_printf(sc->my_dev, "no memory for tx list");

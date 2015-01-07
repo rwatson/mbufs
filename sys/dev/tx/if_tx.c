@@ -766,7 +766,7 @@ epic_rx_done(epic_softc_t *sc)
 			if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 			continue;
 		}
-		buf->mbuf->m_len = buf->mbuf->m_pkthdr.len = MCLBYTES;
+		buf->mbuf->m_len = buf->mbuf->m_pkthdr.len = M_SIZE(buf->mbuf);
 		m_adj(buf->mbuf, ETHER_ALIGN);
 
 		/* Point to new mbuf, and give descriptor to chip. */
@@ -1496,7 +1496,7 @@ epic_queue_last_packet(epic_softc_t *sc)
 		return (ENOBUFS);
 
 	/* Prepare mbuf. */
-	m0->m_len = min(MHLEN, ETHER_MIN_LEN - ETHER_CRC_LEN);
+	m0->m_len = min(M_SIZE(m0), ETHER_MIN_LEN - ETHER_CRC_LEN);
 	m0->m_pkthdr.len = m0->m_len;
 	m0->m_pkthdr.rcvif = sc->ifp;
 	bzero(mtod(m0, caddr_t), m0->m_len);
@@ -1645,7 +1645,7 @@ epic_init_rings(epic_softc_t *sc)
 			epic_free_rings(sc);
 			return (ENOBUFS);
 		}
-		buf->mbuf->m_len = buf->mbuf->m_pkthdr.len = MCLBYTES;
+		buf->mbuf->m_len = buf->mbuf->m_pkthdr.len = M_SIZE(buf->mbuf);
 		m_adj(buf->mbuf, ETHER_ALIGN);
 
 		error = bus_dmamap_create(sc->mtag, 0, &buf->map);

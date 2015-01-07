@@ -1934,7 +1934,7 @@ re_newbuf(struct rl_softc *sc, int idx)
 	if (m == NULL)
 		return (ENOBUFS);
 
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 #ifdef RE_FIXUP_RX
 	/*
 	 * This is part of an evil trick to deal with non-x86 platforms.

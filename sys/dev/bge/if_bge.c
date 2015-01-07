@@ -1326,13 +1326,12 @@ bge_newbuf_std(struct bge_softc *sc, int i)
 		m = m_getjcl(M_NOWAIT, MT_DATA, M_PKTHDR, MJUM9BYTES);
 		if (m == NULL)
 			return (ENOBUFS);
-		m->m_len = m->m_pkthdr.len = MJUM9BYTES;
 	} else {
 		m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 		if (m == NULL)
 			return (ENOBUFS);
-		m->m_len = m->m_pkthdr.len = MCLBYTES;
 	}
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	if ((sc->bge_flags & BGE_FLAG_RX_ALIGNBUG) == 0)
 		m_adj(m, ETHER_ALIGN);
 

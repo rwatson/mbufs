@@ -386,14 +386,14 @@ nf10bmac_rx_locked(struct nf10bmac_softc *sc)
 		m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 		if (m == NULL)
 			return (0);
-		m->m_len = m->m_pkthdr.len = MCLBYTES;
 	} else {
 		/* Hey this still fits into the mbuf+pkthdr. */
 		m = m_gethdr(M_NOWAIT, MT_DATA);
 		if (m == NULL)
 			return (0);
-		m->m_len = m->m_pkthdr.len = MHLEN;
 	}
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
+
 	/* Make sure upper layers will be aligned. */
 	m_adj(m, ETHER_ALIGN);
 

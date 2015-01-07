@@ -1527,12 +1527,11 @@ ql_get_mbuf(qla_host_t *ha, qla_rx_buf_t *rxb, struct mbuf *nmp)
 					"%s: m_getcl failed\n", __func__);
 			goto exit_ql_get_mbuf;
 		}
-		mp->m_len = mp->m_pkthdr.len = MCLBYTES;
 	} else {
-		mp->m_len = mp->m_pkthdr.len = MCLBYTES;
 		mp->m_data = mp->m_ext.ext_buf;
 		mp->m_next = NULL;
 	}
+	mp->m_len = mp->m_pkthdr.len = M_SIZE(mp);
 
 	offset = (uint32_t)((unsigned long long)mp->m_data & 0x7ULL);
 	if (offset) {

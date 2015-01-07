@@ -1637,7 +1637,7 @@ register_send(struct ip6_hdr *ip6, struct mif6 *mif, struct mbuf *m)
 		m_freem(mm);
 		return (ENOBUFS);
 	}
-	i = MHLEN - M_LEADINGSPACE(mm);
+	i = M_SIZE(mm) - M_LEADINGSPACE(mm);
 	if (i > len)
 		i = len;
 	mm = m_pullup(mm, i);

@@ -530,7 +530,7 @@ ng_h4_input(int c, struct tty *tp)
 				m->m_pkthdr.len = 0;
 
 				/* XXX m_copyback() is stupid */
-				m->m_len = min(MHLEN, sc->got);
+				m->m_len = min(M_SIZE(m), sc->got);
 
 				m_copyback(m, 0, sc->got, sc->ibuf);
 				NG_SEND_DATA_ONLY(c, sc->hook, m);

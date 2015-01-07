@@ -2008,7 +2008,7 @@ nfe_newbuf(struct nfe_softc *sc, int idx)
 	if (m == NULL)
 		return (ENOBUFS);
 
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, ETHER_ALIGN);
 
 	if (bus_dmamap_load_mbuf_sg(sc->rxq.rx_data_tag, sc->rxq.rx_spare_map,

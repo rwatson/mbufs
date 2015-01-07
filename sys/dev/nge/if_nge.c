@@ -1383,7 +1383,7 @@ nge_newbuf(struct nge_softc *sc, int idx)
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 	if (m == NULL)
 		return (ENOBUFS);
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, sizeof(uint64_t));
 
 	if (bus_dmamap_load_mbuf_sg(sc->nge_cdata.nge_rx_tag,

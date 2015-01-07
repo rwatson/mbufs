@@ -876,7 +876,7 @@ get_rx_buf(struct sbni_softc *sc)
 	 * to the header. The +2 is to compensate for the alignment
 	 * fixup below.
 	 */
-	if (ETHER_MAX_LEN + 2 > MHLEN) {
+	if (ETHER_MAX_LEN + 2 > M_SIZE(m)) {
 		/* Attach an mbuf cluster */
 		if (!(MCLGET(m, M_NOWAIT))) {
 			m_freem(m);

@@ -375,12 +375,12 @@ emac_rxeof(struct emac_softc *sc, int count)
 			 * the new mbuf. The new mbuf is prepended into the
 			 * existing mbuf chain.
 			 */
-			if (m->m_len <= (MHLEN - ETHER_HDR_LEN)) {
+			if (m->m_len <= (M_SIZE(m) - ETHER_HDR_LEN)) {
 				bcopy(m->m_data, m->m_data + ETHER_HDR_LEN,
 				    m->m_len);
 				m->m_data += ETHER_HDR_LEN;
 			} else if (m->m_len <= (MCLBYTES - ETHER_HDR_LEN) &&
-			    m->m_len > (MHLEN - ETHER_HDR_LEN)) {
+			    m->m_len > (M_SIZE(m) - ETHER_HDR_LEN)) {
 				MGETHDR(m0, M_NOWAIT, MT_DATA);
 				if (m0 != NULL) {
 					len = ETHER_HDR_LEN +

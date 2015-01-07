@@ -833,7 +833,7 @@ vx_get(struct vx_softc *sc, u_int totlen)
 	}
 	m->m_pkthdr.rcvif = ifp;
 	m->m_pkthdr.len = totlen;
-	len = MHLEN;
+	len = M_SIZE(m);
 	top = NULL;
 	mp = &top;
 
@@ -864,13 +864,11 @@ vx_get(struct vx_softc *sc, u_int totlen)
 			} else {
 				sc->vx_next_mb = (sc->vx_next_mb + 1) % MAX_MBS;
 			}
-			len = MLEN;
 		}
 		if (totlen >= MINCLSIZE) {
-			if (MCLGET(m, M_NOWAIT))
-				len = MCLBYTES;
+			(void)MCLGET(m, M_NOWAIT);
 		}
-		len = min(totlen, len);
+		len = min(totlen, M_SIZE(m));
 		if (len > 3)
 			bus_space_read_multi_4(sc->vx_bst, sc->vx_bsh,
 			    VX_W1_RX_PIO_RD_1, mtod(m, u_int32_t *), len / 4);

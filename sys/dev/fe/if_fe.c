@@ -1879,7 +1879,7 @@ fe_get_packet (struct fe_softc * sc, u_short len)
 		return -1;
 
 	/* Attach a cluster if this packet doesn't fit in a normal mbuf.  */
-	if (len > MHLEN - NFS_MAGIC_OFFSET) {
+	if (len > M_SIZE(m) - NFS_MAGIC_OFFSET) {
 		if (!(MCLGET(m, M_NOWAIT))) {
 			m_freem(m);
 			return -1;

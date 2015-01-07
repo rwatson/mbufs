@@ -1115,7 +1115,7 @@ sonic_get(struct snc_softc *sc, u_int32_t pkt, int datalen)
 		return (0);
 	m->m_pkthdr.rcvif = sc->sc_ifp;
 	m->m_pkthdr.len = datalen;
-	len = MHLEN;
+	len = M_SIZE(m);
 	top = 0;
 	mp = &top;
 
@@ -1126,14 +1126,14 @@ sonic_get(struct snc_softc *sc, u_int32_t pkt, int datalen)
 				m_freem(top);
 				return (0);
 			}
-			len = MLEN;
+			len = M_SIZE(m);
 		}
 		if (datalen >= MINCLSIZE) {
 			if (!(MCLGET(m, M_NOWAIT))) {
 				if (top) m_freem(top);
 				return (0);
 			}
-			len = MCLBYTES;
+			len = M_SIZE(m);
 		}
 #if 0
 		/* XXX: Require? */

@@ -2152,7 +2152,7 @@ key_spddelete2(struct socket *so, struct mbuf *m,
 	len = PFKEY_ALIGN8(sizeof(struct sadb_msg));
 
 	MGETHDR(n, M_NOWAIT, MT_DATA);
-	if (n && len > MHLEN) {
+	if (n && len > M_SIZE(n)) {
 		if (!(MCLGET(n, M_NOWAIT))) {
 			m_freem(n);
 			n = NULL;
@@ -3494,7 +3494,7 @@ key_setsadbmsg(u_int8_t type, u_int16_t tlen, u_int8_t satype, u_int32_t seq,
 	if (len > MCLBYTES)
 		return NULL;
 	MGETHDR(m, M_NOWAIT, MT_DATA);
-	if (m && len > MHLEN) {
+	if (m && len > M_SIZE(m)) {
 		if (!(MCLGET(m, M_NOWAIT))) {
 			m_freem(m);
 			m = NULL;
@@ -4691,7 +4691,7 @@ key_getspi(struct socket *so, struct mbuf *m, const struct sadb_msghdr *mhp)
 	    PFKEY_ALIGN8(sizeof(struct sadb_sa));
 
 	MGETHDR(n, M_NOWAIT, MT_DATA);
-	if (len > MHLEN) {
+	if (len > M_SIZE(n)) {
 		if (!(MCLGET(n, M_NOWAIT))) {
 			m_freem(n);
 			n = NULL;
@@ -6624,7 +6624,7 @@ key_register(struct socket *so, struct mbuf *m, const struct sadb_msghdr *mhp)
 		return key_senderror(so, m, ENOBUFS);
 
 	MGETHDR(n, M_NOWAIT, MT_DATA);
-	if (len > MHLEN) {
+	if (len > M_SIZE(n)) {
 		if (!(MCLGET(n, M_NOWAIT))) {
 			m_freem(n);
 			n = NULL;
@@ -7182,7 +7182,7 @@ key_parse(struct mbuf *m, struct socket *so)
 		struct mbuf *n;
 
 		MGETHDR(n, M_NOWAIT, MT_DATA);
-		if (n && m->m_pkthdr.len > MHLEN) {
+		if (n && m->m_pkthdr.len > M_SIZE(n)) {
 			if (!(MCLGET(n, M_NOWAIT))) {
 				m_free(n);
 				n = NULL;

@@ -2662,7 +2662,7 @@ fxp_new_rfabuf(struct fxp_softc *sc, struct fxp_rx *rxp)
 	rfa->rfa_status = 0;
 	rfa->rfa_control = htole16(FXP_RFA_CONTROL_EL);
 	rfa->actual_size = 0;
-	m->m_len = m->m_pkthdr.len = MCLBYTES - RFA_ALIGNMENT_FUDGE -
+	m->m_len = m->m_pkthdr.len = M_SIZE(m) - RFA_ALIGNMENT_FUDGE -
 	    sc->rfa_size;
 
 	/*

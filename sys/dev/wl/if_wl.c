@@ -1099,7 +1099,7 @@ wlread(struct wl_softc *sc, u_short fd_p)
 	}
 	return 0;
     }
-    m->m_pkthdr.len = m->m_len = MCLBYTES;
+    m->m_pkthdr.len = m->m_len = M_SIZE(m);
     m_adj(m, ETHER_ALIGN);		/* align IP header */
 
     /*

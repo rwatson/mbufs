@@ -3228,9 +3228,9 @@ lem_get_buf(struct adapter *adapter, int i)
 		adapter->mbuf_cluster_failed++;
 		return (ENOBUFS);
 	}
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 
-	if (adapter->max_frame_size <= (MCLBYTES - ETHER_ALIGN))
+	if (adapter->max_frame_size <= (M_SIZE(m) - ETHER_ALIGN))
 		m_adj(m, ETHER_ALIGN);
 
 	/*

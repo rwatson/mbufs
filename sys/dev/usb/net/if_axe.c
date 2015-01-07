@@ -1118,7 +1118,7 @@ axe_rxeof(struct usb_ether *ue, struct usb_page_cache *pc, unsigned int offset,
 		if_inc_counter(ifp, IFCOUNTER_IQDROPS, 1);
 		return (ENOMEM);
 	}
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, ETHER_ALIGN);
 
 	usbd_copy_out(pc, offset, mtod(m, uint8_t *), len);

@@ -963,7 +963,7 @@ send:
 		 */
 		mb = sbsndptr(&so->so_snd, off, len, &moff);
 
-		if (len <= MHLEN - hdrlen - max_linkhdr) {
+		if (len <= M_SIZE(m) - hdrlen - max_linkhdr) {
 			m_copydata(mb, moff, (int)len,
 			    mtod(m, caddr_t) + hdrlen);
 			m->m_len += len;
@@ -1005,8 +1005,8 @@ send:
 			goto out;
 		}
 #ifdef INET6
-		if (isipv6 && (MHLEN < hdrlen + max_linkhdr) &&
-		    MHLEN >= hdrlen) {
+		if (isipv6 && (M_SIZE(m) < hdrlen + max_linkhdr) &&
+		    M_SIZE(m) >= hdrlen) {
 			M_ALIGN(m, hdrlen);
 		} else
 #endif

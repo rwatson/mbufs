@@ -443,7 +443,7 @@ ng_bpf_rcvdata(hook_p hook, item_p item)
 #endif
 
 	/* Need to put packet in contiguous memory for bpf */
-	if (m->m_next != NULL && totlen > MHLEN) {
+	if (m->m_next != NULL && totlen > M_SIZE(m)) {
 		if (usejit) {
 			data = malloc(totlen, M_NETGRAPH_BPF, M_NOWAIT);
 			if (data == NULL) {

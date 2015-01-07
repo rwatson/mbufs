@@ -1571,7 +1571,7 @@ oce_alloc_rx_bufs(struct oce_rq *rq, int count)
 		if (pd->mbuf == NULL)
 			break;
 
-		pd->mbuf->m_len = pd->mbuf->m_pkthdr.len = MCLBYTES;
+		pd->mbuf->m_len = pd->mbuf->m_pkthdr.len = M_SIZE(pd->mbuf);
 		rc = bus_dmamap_load_mbuf_sg(rq->tag,
 					     pd->map,
 					     pd->mbuf,

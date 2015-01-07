@@ -654,7 +654,7 @@ admsw_start(struct ifnet *ifp)
 				    "unable to allocate Tx mbuf\n");
 				break;
 			}
-			if (m0->m_pkthdr.len > MHLEN) {
+			if (m0->m_pkthdr.len > M_SIZE(m)) {
 				if (!(MCLGET(m, M_NOWAIT))) {
 					device_printf(sc->sc_dev, 
 					    "unable to allocate Tx cluster\n");

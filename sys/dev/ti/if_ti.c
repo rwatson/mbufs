@@ -1391,7 +1391,7 @@ ti_newbuf_std(struct ti_softc *sc, int i)
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 	if (m == NULL)
 		return (ENOBUFS);
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, ETHER_ALIGN);
 
 	error = bus_dmamap_load_mbuf_sg(sc->ti_cdata.ti_rx_std_tag,
@@ -1446,7 +1446,7 @@ ti_newbuf_mini(struct ti_softc *sc, int i)
 	MGETHDR(m, M_NOWAIT, MT_DATA);
 	if (m == NULL)
 		return (ENOBUFS);
-	m->m_len = m->m_pkthdr.len = MHLEN;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, ETHER_ALIGN);
 
 	error = bus_dmamap_load_mbuf_sg(sc->ti_cdata.ti_rx_mini_tag,
@@ -1601,7 +1601,7 @@ ti_newbuf_jumbo(struct ti_softc *sc, int idx, struct mbuf *m_old)
 			    "-- packet dropped!\n");
 			goto nobufs;
 		}
-		m[NPAYLOAD]->m_len = MCLBYTES;
+		m[NPAYLOAD]->m_len = M_SIZE(m[NPAYLOAD]);
 
 		for (i = 0; i < NPAYLOAD; i++){
 			MGET(m[i], M_NOWAIT, MT_DATA);
@@ -1642,7 +1642,7 @@ ti_newbuf_jumbo(struct ti_softc *sc, int idx, struct mbuf *m_old)
 		m_new->m_next = m[0];
 		m_new->m_data += ETHER_ALIGN;
 		if (sc->ti_hdrsplit)
-			m_new->m_len = MHLEN - ETHER_ALIGN;
+			m_new->m_len = M_SIZE(m_new) - ETHER_ALIGN;
 		else
 			m_new->m_len = HDR_LEN;
 		m_new->m_pkthdr.len = NPAYLOAD * PAGE_SIZE + m_new->m_len;

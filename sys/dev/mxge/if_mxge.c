@@ -2426,7 +2426,7 @@ mxge_get_buf_small(struct mxge_slice_state *ss, bus_dmamap_t map, int idx)
 		err = ENOBUFS;
 		goto done;
 	}
-	m->m_len = MHLEN;
+	m->m_len = M_SIZE(m);
 	err = bus_dmamap_load_mbuf_sg(rx->dmat, map, m,
 				      &seg, &cnt, BUS_DMA_NOWAIT);
 	if (err != 0) {

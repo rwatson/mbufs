@@ -1442,7 +1442,7 @@ vte_newbuf(struct vte_softc *sc, struct vte_rxdesc *rxd)
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 	if (m == NULL)
 		return (ENOBUFS);
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, sizeof(uint32_t));
 
 	if (bus_dmamap_load_mbuf_sg(sc->vte_cdata.vte_rx_tag,
@@ -1891,8 +1891,9 @@ vte_init_tx_ring(struct vte_softc *sc)
 			    MT_DATA, M_PKTHDR);
 			if (sc->vte_cdata.vte_txmbufs[i] == NULL)
 				return (ENOBUFS);
-			sc->vte_cdata.vte_txmbufs[i]->m_pkthdr.len = MCLBYTES;
-			sc->vte_cdata.vte_txmbufs[i]->m_len = MCLBYTES;
+			sc->vte_cdata.vte_txmbufs[i]->m_pkthdr.len =
+			    sc->vte_cdata.vte_txmbufs[i]->m_len =
+			    M_SIZE(sc->vte_cdata.vte_txmbufs[i]);
 		}
 	}
 	desc = sc->vte_cdata.vte_tx_ring;

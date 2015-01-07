@@ -1767,7 +1767,7 @@ xl_newbuf(struct xl_softc *sc, struct xl_chain_onefrag *c)
 	if (m_new == NULL)
 		return (ENOBUFS);
 
-	m_new->m_len = m_new->m_pkthdr.len = MCLBYTES;
+	m_new->m_len = m_new->m_pkthdr.len = M_SIZE(m_new);
 
 	/* Force longword alignment for packet payload. */
 	m_adj(m_new, ETHER_ALIGN);

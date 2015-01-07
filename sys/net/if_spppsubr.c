@@ -4717,7 +4717,7 @@ sppp_auth_send(const struct cp *cp, struct sppp *sp,
 	while ((mlen = (unsigned int)va_arg(ap, size_t)) != 0) {
 		msg = va_arg(ap, const char *);
 		len += mlen;
-		if (len > MHLEN - PPP_HEADER_LEN - LCP_HEADER_LEN) {
+		if (len > M_SIZE(m) - PPP_HEADER_LEN - LCP_HEADER_LEN) {
 			va_end(ap);
 			m_freem(m);
 			return;

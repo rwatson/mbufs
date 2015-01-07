@@ -2549,7 +2549,7 @@ bwi_newbuf(struct bwi_softc *sc, int buf_idx, int init)
 		else
 			goto back;
 	}
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 
 	/*
 	 * Try to load RX buf into temporary DMA map

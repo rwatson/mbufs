@@ -393,14 +393,14 @@ lance_get(struct lance_softc *sc, int boff, int totlen)
 		return (NULL);
 	m0->m_pkthdr.rcvif = ifp;
 	m0->m_pkthdr.len = totlen;
-	len = MHLEN;
+	len = M_SIZE(m0);
 	m = m0;
 
 	while (totlen > 0) {
 		if (totlen >= MINCLSIZE) {
 			if (!(MCLGET(m, M_NOWAIT)))
 				goto bad;
-			len = MCLBYTES;
+			len = M_SIZE(m);
 		}
 
 		if (m == m0) {

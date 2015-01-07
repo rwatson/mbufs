@@ -83,16 +83,15 @@ m_makespace(struct mbuf *m0, int skip, int hlen, int *off)
 		while (todo > 0) {
 			if (todo > MHLEN) {
 				n = m_getcl(M_NOWAIT, m->m_type, 0);
-				len = MCLBYTES;
 			}
 			else {
 				n = m_get(M_NOWAIT, m->m_type);
-				len = MHLEN;
 			}
 			if (n == NULL) {
 				m_freem(n0);
 				return NULL;
 			}
+			len = M_SIZE(n);
 			*np = n;
 			np = &n->m_next;
 			alloc++;

@@ -1387,7 +1387,7 @@ ste_newbuf(struct ste_softc *sc, struct ste_chain_onefrag *rxc)
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 	if (m == NULL)
 		return (ENOBUFS);
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 	m_adj(m, ETHER_ALIGN);
 
 	if ((error = bus_dmamap_load_mbuf_sg(sc->ste_cdata.ste_rx_tag,

@@ -1193,7 +1193,7 @@ wb_encap(sc, c, m_head)
 		MGETHDR(m_new, M_NOWAIT, MT_DATA);
 		if (m_new == NULL)
 			return(1);
-		if (m_head->m_pkthdr.len > MHLEN) {
+		if (m_head->m_pkthdr.len > M_SIZE(m_new)) {
 			if (!(MCLGET(m_new, M_NOWAIT))) {
 				m_freem(m_new);
 				return(1);

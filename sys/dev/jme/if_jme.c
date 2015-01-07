@@ -3189,7 +3189,7 @@ jme_newbuf(struct jme_softc *sc, struct jme_rxdesc *rxd)
 	 * in order not to copy entire frame to align IP header on
 	 * 32bit boundary.
 	 */
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 
 	if (bus_dmamap_load_mbuf_sg(sc->jme_cdata.jme_rx_tag,
 	    sc->jme_cdata.jme_rx_sparemap, m, segs, &nsegs, 0) != 0) {

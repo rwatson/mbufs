@@ -5526,7 +5526,7 @@ bce_get_pg_buf(struct bce_softc *sc, u16 prod, u16 prod_idx)
 
 	DBRUN(sc->debug_pg_mbuf_alloc++);
 
-	m_new->m_len = MCLBYTES;
+	m_new->m_len = M_SIZE(m_new);
 
 	/* ToDo: Consider calling m_fragment() to test error handling. */
 

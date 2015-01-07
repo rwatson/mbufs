@@ -1364,13 +1364,10 @@ ubsec_process(device_t dev, struct cryptop *crp, int hint)
 				if (totlen >= MINCLSIZE) {
 					m = m_getcl(M_NOWAIT, MT_DATA,
 					    q->q_src_m->m_flags & M_PKTHDR);
-					len = MCLBYTES;
 				} else if (q->q_src_m->m_flags & M_PKTHDR) {
 					m = m_gethdr(M_NOWAIT, MT_DATA);
-					len = MHLEN;
 				} else {
 					m = m_get(M_NOWAIT, MT_DATA);
-					len = MLEN;
 				}
 				if (m && q->q_src_m->m_flags & M_PKTHDR &&
 				    !m_dup_pkthdr(m, q->q_src_m, M_NOWAIT)) {
@@ -1382,6 +1379,7 @@ ubsec_process(device_t dev, struct cryptop *crp, int hint)
 					err = sc->sc_nqueue ? ERESTART : ENOMEM;
 					goto errout;
 				}
+				len = M_SIZE(m);
 				m->m_len = len = min(totlen, len);
 				totlen -= len;
 				top = m;
@@ -1391,10 +1389,8 @@ ubsec_process(device_t dev, struct cryptop *crp, int hint)
 					if (totlen >= MINCLSIZE) {
 						m = m_getcl(M_NOWAIT,
 						    MT_DATA, 0);
-						len = MCLBYTES;
 					} else {
 						m = m_get(M_NOWAIT, MT_DATA);
-						len = MLEN;
 					}
 					if (m == NULL) {
 						m_freem(top);
@@ -1402,6 +1398,7 @@ ubsec_process(device_t dev, struct cryptop *crp, int hint)
 						err = sc->sc_nqueue ? ERESTART : ENOMEM;
 						goto errout;
 					}
+					len = M_SIZE(m);
 					m->m_len = len = min(totlen, len);
 					totlen -= len;
 					*mp = m;

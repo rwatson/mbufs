@@ -840,16 +840,13 @@ copy_mbuf(struct mbuf *m)
 {
 	struct mbuf *new;
 
+	/* XXXRW: Why not use m_copym() or similar? */
 	MGET(new, M_WAITOK, MT_DATA);
 
-	if (m->m_flags & M_PKTHDR) {
+	if (m->m_flags & M_PKTHDR)
 		M_MOVE_PKTHDR(new, m);
-		if (m->m_len > MHLEN)
-			MCLGET(new, M_WAITOK);
-	} else {
-		if (m->m_len > MLEN)
-			MCLGET(new, M_WAITOK);
-	}
+	if (m->m_len > M_SIZE(new))
+		MCLGET(new, M_WAITOK);
 
 	bcopy(m->m_data, new->m_data, m->m_len);
 	new->m_len = m->m_len;

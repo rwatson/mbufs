@@ -213,14 +213,12 @@ key_sendup(struct socket *so, struct sadb_msg *msg, u_int len, int target)
 				PFKEYSTAT_INC(in_nomem);
 				return ENOBUFS;
 			}
-			n->m_len = MHLEN;
 		} else {
 			MGET(n, M_NOWAIT, MT_DATA);
 			if (n == NULL) {
 				PFKEYSTAT_INC(in_nomem);
 				return ENOBUFS;
 			}
-			n->m_len = MLEN;
 		}
 		if (tlen >= MCLBYTES) {	/*XXX better threshold? */
 			if (!(MCLGET(n, M_NOWAIT))) {
@@ -229,8 +227,8 @@ key_sendup(struct socket *so, struct sadb_msg *msg, u_int len, int target)
 				PFKEYSTAT_INC(in_nomem);
 				return ENOBUFS;
 			}
-			n->m_len = MCLBYTES;
 		}
+		n->m_len = M_SIZE(n);
 
 		if (tlen < n->m_len)
 			n->m_len = tlen;

@@ -699,7 +699,7 @@ ieget(struct ie_softc *sc, struct mbuf **mp)
 
 	*mp = m;
 	m->m_pkthdr.rcvif = sc->ifp;
-	m->m_len = MHLEN;
+	m->m_len = M_SIZE(m);
 	resid = m->m_pkthdr.len = totlen;
 	top = 0;
 
@@ -725,7 +725,7 @@ ieget(struct ie_softc *sc, struct mbuf **mp)
 				ie_drop_packet_buffer(sc);
 				return (-1);
 			}
-			m->m_len = MLEN;
+			m->m_len = M_SIZE(m);
 		}
 		if (resid >= MINCLSIZE) {
 			if (MCLGET(m, M_NOWAIT))

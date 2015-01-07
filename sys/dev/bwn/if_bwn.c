@@ -9197,7 +9197,7 @@ bwn_dma_newbuf(struct bwn_dma_ring *dr, struct bwn_dmadesc_generic *desc,
 		else
 			goto back;
 	}
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 
 	bwn_dma_set_redzone(dr, m);
 

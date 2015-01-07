@@ -3095,7 +3095,7 @@ age_newbuf(struct age_softc *sc, struct age_rxdesc *rxd)
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 	if (m == NULL)
 		return (ENOBUFS);
-	m->m_len = m->m_pkthdr.len = MCLBYTES;
+	m->m_len = m->m_pkthdr.len = M_SIZE(m);
 #ifndef __NO_STRICT_ALIGNMENT
 	m_adj(m, AGE_RX_BUF_ALIGN);
 #endif

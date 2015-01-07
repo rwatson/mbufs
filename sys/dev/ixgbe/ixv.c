@@ -2715,9 +2715,8 @@ ixv_refresh_mbufs(struct rx_ring *rxr, int limit)
 			mh = m_gethdr(M_NOWAIT, MT_DATA);
 			if (mh == NULL)
 				goto update;
-			mh->m_pkthdr.len = mh->m_len = MHLEN;
-			mh->m_len = MHLEN;
-			mh->m_flags |= M_PKTHDR;
+			mh->m_flags |= M_PKTHDR;	/* XXXRW: Redundant? */
+			mh->m_pkthdr.len = mh->m_len = M_SIZE(mh);
 			m_adj(mh, ETHER_ALIGN);
 			/* Get the memory mapping */
 			error = bus_dmamap_load_mbuf_sg(rxr->htag,
@@ -2937,8 +2936,8 @@ ixv_setup_receive_ring(struct rx_ring *rxr)
 		}
 		m_adj(rxbuf->m_head, ETHER_ALIGN);
 		mh = rxbuf->m_head;
-		mh->m_len = mh->m_pkthdr.len = MHLEN;
-		mh->m_flags |= M_PKTHDR;
+		mh->m_flags |= M_PKTHDR; /* XXXRW: Redundant? */
+		mh->m_len = mh->m_pkthdr.len = M_SIZE(mh);
 		/* Get the memory mapping */
 		error = bus_dmamap_load_mbuf_sg(rxr->htag,
 		    rxbuf->hmap, rxbuf->m_head, hseg,
