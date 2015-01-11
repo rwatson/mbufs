@@ -941,7 +941,7 @@ ixl_refresh_mbufs(struct ixl_queue *que, int limit)
 		} else
 			mh = buf->m_head;
 
-		mh->m_flags |= M_PKTHDR;	/* XXXRW: Redundant? */
+		M_ASSERTPKTHDR(mh);
 		mh->m_pkthdr.len = mh->m_len = M_SIZE(mh);
 		/* Get the memory mapping */
 		error = bus_dmamap_load_mbuf_sg(rxr->htag,
@@ -1109,14 +1109,14 @@ ixl_init_rx_ring(struct ixl_queue *que)
 			bus_dmamap_sync(rxr->htag, buf->hmap,
 			    BUS_DMASYNC_POSTREAD);
 			bus_dmamap_unload(rxr->htag, buf->hmap);
-			buf->m_head->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(buf->m_head);
 			m_freem(buf->m_head);
 		}
 		if (buf->m_pack != NULL) {
 			bus_dmamap_sync(rxr->ptag, buf->pmap,
 			    BUS_DMASYNC_POSTREAD);
 			bus_dmamap_unload(rxr->ptag, buf->pmap);
-			buf->m_pack->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(buf->m_pack);
 			m_freem(buf->m_pack);
 		}
 		buf->m_head = NULL;
@@ -1146,7 +1146,7 @@ ixl_init_rx_ring(struct ixl_queue *que)
 		}
 		m_adj(buf->m_head, ETHER_ALIGN);
 		mh = buf->m_head;
-		mh->m_flags |= M_PKTHDR;	/* XXXRW: Redundant? */
+		M_ASSERTPKTHDR(mh);
 		mh->m_len = mh->m_pkthdr.len = M_SIZE(mh);
 		/* Get the memory mapping */
 		error = bus_dmamap_load_mbuf_sg(rxr->htag,
@@ -1240,14 +1240,14 @@ ixl_free_que_rx(struct ixl_queue *que)
 				bus_dmamap_sync(rxr->htag, buf->hmap,
 				    BUS_DMASYNC_POSTREAD);
 				bus_dmamap_unload(rxr->htag, buf->hmap);
-				buf->m_head->m_flags |= M_PKTHDR;
+				M_ASSERTPKTHDR(buf->m_head);
 				m_freem(buf->m_head);
 			}
 			if (buf->m_pack != NULL) {
 				bus_dmamap_sync(rxr->ptag, buf->pmap,
 				    BUS_DMASYNC_POSTREAD);
 				bus_dmamap_unload(rxr->ptag, buf->pmap);
-				buf->m_pack->m_flags |= M_PKTHDR;
+				M_ASSERTPKTHDR(buf->m_pack);
 				m_freem(buf->m_pack);
 			}
 			buf->m_head = NULL;
@@ -1319,7 +1319,7 @@ ixl_rx_discard(struct rx_ring *rxr, int i)
 	rbuf = &rxr->buffers[i];
 
         if (rbuf->fmp != NULL) {/* Partial chain ? */
-		rbuf->fmp->m_flags |= M_PKTHDR;
+		M_ASSERTPKTHDR(rbuf->fmp);
                 m_freem(rbuf->fmp);
                 rbuf->fmp = NULL;
 	}
@@ -1455,8 +1455,8 @@ ixl_rxeof(struct ixl_queue *que, int count)
 			if (hlen > IXL_RX_HDR)
 				hlen = IXL_RX_HDR;
 			mh->m_len = hlen;
-			mh->m_flags |= M_PKTHDR;
 			mh->m_next = NULL;
+			M_ASSERTPKTHDR(mh);
 			mh->m_pkthdr.len = mh->m_len;
 			/* Null buf pointer so it is refreshed */
 			rbuf->m_head = NULL;
@@ -1468,7 +1468,7 @@ ixl_rxeof(struct ixl_queue *que, int count)
 			if (plen > 0) {
 				mp->m_len = plen;
 				mp->m_next = NULL;
-				mp->m_flags &= ~M_PKTHDR;
+				m_pkthdr_clear(mp);
 				mh->m_next = mp;
 				mh->m_pkthdr.len += mp->m_len;
 				/* Null buf pointer so it is refreshed */
@@ -1515,7 +1515,7 @@ ixl_rxeof(struct ixl_queue *que, int count)
 			else {
 				/* first desc of a non-ps chain */
 				sendmp = mp;
-				sendmp->m_flags |= M_PKTHDR;
+				M_ASSERTPKTHDR(sendmp);
 				sendmp->m_pkthdr.len = mp->m_len;
 				if (vtag) {
 					sendmp->m_pkthdr.ether_vtag = vtag;

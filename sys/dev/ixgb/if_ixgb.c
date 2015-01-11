@@ -2126,7 +2126,7 @@ ixgb_process_receive_interrupts(struct adapter * adapter, int count)
 				adapter->lmp = mp;
 			} else {
 				/* Chain mbuf's together */
-				mp->m_flags &= ~M_PKTHDR;
+				m_pkthdr_clear(mp);
 				adapter->lmp->m_next = mp;
 				adapter->lmp = adapter->lmp->m_next;
 				adapter->fmp->m_pkthdr.len += len;

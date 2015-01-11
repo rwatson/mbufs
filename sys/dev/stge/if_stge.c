@@ -1703,7 +1703,7 @@ stge_rxeof(struct stge_softc *sc)
 			sc->sc_cdata.stge_rxhead = mp;
 			sc->sc_cdata.stge_rxtail = mp;
 		} else {
-			mp->m_flags &= ~M_PKTHDR;
+			m_pkthdr_clear(mp);
 			sc->sc_cdata.stge_rxtail->m_next = mp;
 			sc->sc_cdata.stge_rxtail = mp;
 		}

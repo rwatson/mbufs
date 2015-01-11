@@ -4040,7 +4040,7 @@ ixgbe_free_receive_ring(struct rx_ring *rxr)
 			bus_dmamap_sync(rxr->ptag, rxbuf->pmap,
 			    BUS_DMASYNC_POSTREAD);
 			bus_dmamap_unload(rxr->ptag, rxbuf->pmap);
-			rxbuf->buf->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(rxbuf->buf);
 			m_freem(rxbuf->buf);
 			rxbuf->buf = NULL;
 			rxbuf->flags = 0;
@@ -4474,7 +4474,7 @@ ixgbe_free_receive_buffers(struct rx_ring *rxr)
 				bus_dmamap_sync(rxr->ptag, rxbuf->pmap,
 				    BUS_DMASYNC_POSTREAD);
 				bus_dmamap_unload(rxr->ptag, rxbuf->pmap);
-				rxbuf->buf->m_flags |= M_PKTHDR;
+				M_ASSERTPKTHDR(rxbuf->buf);
 				m_freem(rxbuf->buf);
 			}
 			rxbuf->buf = NULL;
@@ -4547,7 +4547,7 @@ ixgbe_rx_discard(struct rx_ring *rxr, int i)
 	*/
 
 	if (rbuf->fmp != NULL) {/* Partial chain ? */
-		rbuf->fmp->m_flags |= M_PKTHDR;
+		M_ASSERTPKTHDR(rbuf->fmp);
 		m_freem(rbuf->fmp);
 		rbuf->fmp = NULL;
 		rbuf->buf = NULL; /* rbuf->buf is part of fmp's chain */
@@ -4685,7 +4685,7 @@ ixgbe_rxeof(struct ix_queue *que)
 		sendmp = rbuf->fmp;
 		if (sendmp != NULL) {  /* secondary frag */
 			rbuf->buf = rbuf->fmp = NULL;
-			mp->m_flags &= ~M_PKTHDR;
+			m_pkthdr_clear(mp);
 			sendmp->m_pkthdr.len += mp->m_len;
 		} else {
 			/*
@@ -4712,7 +4712,7 @@ ixgbe_rxeof(struct ix_queue *que)
 			}
 
 			/* first desc of a non-ps chain */
-			sendmp->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(sendmp);
 			sendmp->m_pkthdr.len = mp->m_len;
 		}
 		++processed;

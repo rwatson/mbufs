@@ -1333,8 +1333,7 @@ tsec_receive_intr_locked(struct tsec_softc *sc, int count)
 		if (sc->frame != NULL) {
 			if ((flags & TSEC_RXBD_L) != 0)
 				m->m_len -= m_length(sc->frame, NULL);
-
-			m->m_flags &= ~M_PKTHDR;
+			m_pkthdr_clear(m);
 			m_cat(sc->frame, m);
 		} else {
 			sc->frame = m;

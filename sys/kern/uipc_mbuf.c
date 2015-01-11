@@ -112,11 +112,11 @@ CTASSERT(offsetof(struct mbuf, m_pktdat) % 8 == 0);
  * comments.
  */
 #if defined(__LP64__)
-CTASSERT(offsetof(struct mbuf, m_dat) == 32);
+CTASSERT(offsetof(struct mbuf, m_dat) == 40);
 CTASSERT(sizeof(struct pkthdr) == 56);
 CTASSERT(sizeof(struct struct_m_ext) == 48);
 #else
-CTASSERT(offsetof(struct mbuf, m_dat) == 24);
+CTASSERT(offsetof(struct mbuf, m_dat) == 28);
 CTASSERT(sizeof(struct pkthdr) == 48);
 CTASSERT(sizeof(struct struct_m_ext) == 28);
 #endif
@@ -298,6 +298,7 @@ m_extadd(struct mbuf *mb, caddr_t buf, u_int size,
 	mb->m_flags |= (M_EXT | flags);
 	mb->m_ext.ext_buf = buf;
 	mb->m_data = mb->m_ext.ext_buf;
+	mb->m_size = size;
 	mb->m_ext.ext_size = size;
 	mb->m_ext.ext_free = freef;
 	mb->m_ext.ext_arg1 = arg1;
@@ -318,6 +319,8 @@ mb_free_ext(struct mbuf *m)
 	int freembuf;
 
 	KASSERT(m->m_flags & M_EXT, ("%s: M_EXT not set on %p", __func__, m));
+	KASSERT(m->m_size == m->m_ext.ext_size,
+	    ("%s: m_size != ext_size on %p", __func__, m));
 
 	/*
 	 * Check if the header is embedded in the cluster.
@@ -390,6 +393,8 @@ mb_dupcl(struct mbuf *n, struct mbuf *m)
 {
 
 	KASSERT(m->m_flags & M_EXT, ("%s: M_EXT not set on %p", __func__, m));
+	KASSERT(m->m_size == m->m_ext.ext_size,
+	    ("%s: m_size != ext_size on %p", __func__, m));
 	KASSERT(!(n->m_flags & M_EXT), ("%s: M_EXT set on %p", __func__, n));
 
 	switch (m->m_ext.ext_type) {
@@ -405,6 +410,7 @@ mb_dupcl(struct mbuf *n, struct mbuf *m)
 			atomic_add_int(m->m_ext.ext_cnt, 1);
 	}
 
+	n->m_size = m->m_size;
 	n->m_ext = m->m_ext;
 	n->m_flags |= M_EXT;
 	n->m_flags |= m->m_flags & M_RDONLY;
@@ -423,11 +429,8 @@ m_demote(struct mbuf *m0, int all, int flags)
 	for (m = all ? m0 : m0->m_next; m != NULL; m = m->m_next) {
 		KASSERT(m->m_nextpkt == NULL, ("%s: m_nextpkt in m %p, m0 %p",
 		    __func__, m, m0));
-		if (m->m_flags & M_PKTHDR) {
-			m_tag_delete_chain(m, NULL);
-			m->m_flags &= ~M_PKTHDR;
-			bzero(&m->m_pkthdr, sizeof(struct pkthdr));
-		}
+		if (m->m_flags & M_PKTHDR)
+			m_pkthdr_destroy(m);
 		m->m_flags = m->m_flags & (M_EXT | M_RDONLY | M_NOFREE | flags);
 	}
 }
@@ -480,6 +483,11 @@ m_sanity(struct mbuf *m0, int sanitize)
 		if (m0->m_flags & M_PKTHDR)
 			pktlen += m->m_len;
 
+		/*
+		 * XXXRW: In the 'sanitize' case here, we should combine these
+		 * two loops, and use m_pkthdr_destroy() rather than
+		 * reproducing its contents here.
+		 */
 		/* m_tags may only be attached to first mbuf in chain. */
 		if (m != m0 && m->m_flags & M_PKTHDR &&
 		    !SLIST_EMPTY(&m->m_pkthdr.tags)) {
@@ -528,19 +536,18 @@ m_move_pkthdr(struct mbuf *to, struct mbuf *from)
 	KASSERT(SLIST_EMPTY(&to->m_pkthdr.tags),
 	    ("m_move_pkthdr: to has tags"));
 #endif
-#ifdef MAC
-	/*
-	 * XXXMAC: It could be this should also occur for non-MAC?
-	 */
 	if (to->m_flags & M_PKTHDR)
 		m_tag_delete_chain(to, NULL);
-#endif
 	to->m_flags = (from->m_flags & M_COPYFLAGS) | (to->m_flags & M_EXT);
-	if ((to->m_flags & M_EXT) == 0)
+	if ((to->m_flags & M_EXT) == 0) {
 		to->m_data = to->m_pktdat;
+		to->m_size = MHLEN;
+	}
 	to->m_pkthdr = from->m_pkthdr;		/* especially tags */
 	SLIST_INIT(&from->m_pkthdr.tags);	/* purge tags from src */
 	from->m_flags &= ~M_PKTHDR;
+	if ((from->m_flags & M_EXT) == 0)
+		from->m_size = MLEN;
 }
 
 /*
@@ -565,13 +572,13 @@ m_dup_pkthdr(struct mbuf *to, struct mbuf *from, int how)
 	KASSERT(SLIST_EMPTY(&to->m_pkthdr.tags), ("m_dup_pkthdr: to has tags"));
 #endif
 	MBUF_CHECKSLEEP(how);
-#ifdef MAC
 	if (to->m_flags & M_PKTHDR)
 		m_tag_delete_chain(to, NULL);
-#endif
 	to->m_flags = (from->m_flags & M_COPYFLAGS) | (to->m_flags & M_EXT);
-	if ((to->m_flags & M_EXT) == 0)
+	if ((to->m_flags & M_EXT) == 0) {
 		to->m_data = to->m_pktdat;
+		to->m_size = MHLEN;
+	}
 	to->m_pkthdr = from->m_pkthdr;
 	SLIST_INIT(&to->m_pkthdr.tags);
 	return (m_tag_copy_chain(to, from, how));
@@ -1942,6 +1949,13 @@ m_profile(struct mbuf *m)
 	while (m) {
 		segments++;
 		used += m->m_len;
+		/*
+		 * XXXRW: The arithmetic here is a bit suspect (e.g., you can
+		 * have M_EXT without M_PKTHDR so MHLEN is not the right thing
+		 * up top), but also there is suspect embedding of knowledge
+		 * about mbuf size -- M_SIZE() should be used here in some
+		 * form.
+		 */
 		if (m->m_flags & M_EXT) {
 			wasted += MHLEN - sizeof(m->m_ext) +
 			    m->m_ext.ext_size - m->m_len;

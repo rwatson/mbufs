@@ -119,12 +119,12 @@ qla_rx_intr(qla_host_t *ha, qla_sgl_rcv_t *sgc, uint32_t sds_idx)
 
 		if (i == 0) {
 			mpl = mpf = mp;
-			mp->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(mp);
 			mp->m_pkthdr.len = sgc->pkt_length;
 			mp->m_pkthdr.rcvif = ifp;
 			rem_len = mp->m_pkthdr.len;
 		} else {
-			mp->m_flags &= ~M_PKTHDR;
+			m_pkthdr_clear(mp);
 			mpl->m_next = mp;
 			mpl = mp;
 			rem_len = rem_len - mp->m_len;
@@ -254,12 +254,12 @@ qla_lro_intr(qla_host_t *ha, qla_sgl_lro_t *sgc, uint32_t sds_idx)
 
 		if (i == 0) {
 			mpl = mpf = mp;
-			mp->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(mp);
 			mp->m_pkthdr.len = pkt_length;
 			mp->m_pkthdr.rcvif = ifp;
 			rem_len = mp->m_pkthdr.len;
 		} else {
-			mp->m_flags &= ~M_PKTHDR;
+			m_pkthdr_clear(mp);
 			mpl->m_next = mp;
 			mpl = mp;
 			rem_len = rem_len - mp->m_len;

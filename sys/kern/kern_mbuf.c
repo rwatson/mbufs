@@ -450,8 +450,8 @@ mb_dtor_mbuf(void *mem, int size, void *arg)
 	flags = (unsigned long)arg;
 
 	KASSERT((m->m_flags & M_NOFREE) == 0, ("%s: M_NOFREE set", __func__));
-	if ((m->m_flags & M_PKTHDR) && !SLIST_EMPTY(&m->m_pkthdr.tags))
-		m_tag_delete_chain(m, NULL);
+	if ((m->m_flags & M_PKTHDR) != 0)
+		m_pkthdr_destroy(m);
 #ifdef INVARIANTS
 	trash_dtor(mem, size, arg);
 #endif
@@ -467,10 +467,12 @@ mb_dtor_pack(void *mem, int size, void *arg)
 
 	m = (struct mbuf *)mem;
 	if ((m->m_flags & M_PKTHDR) != 0)
-		m_tag_delete_chain(m, NULL);
+		m_pkthdr_destroy(m);
 
 	/* Make sure we've got a clean cluster back. */
 	KASSERT((m->m_flags & M_EXT) == M_EXT, ("%s: M_EXT not set", __func__));
+	KASSERT(m->m_size == m->m_ext.ext_size, ("%s: m_size != ext_size",
+	    __func__));
 	KASSERT(m->m_ext.ext_buf != NULL, ("%s: ext_buf == NULL", __func__));
 	KASSERT(m->m_ext.ext_free == NULL, ("%s: ext_free != NULL", __func__));
 	KASSERT(m->m_ext.ext_arg1 == NULL, ("%s: ext_arg1 != NULL", __func__));
@@ -542,6 +544,7 @@ mb_ctor_clust(void *mem, int size, void *arg, int how)
 	if (m != NULL) {
 		m->m_ext.ext_buf = (caddr_t)mem;
 		m->m_data = m->m_ext.ext_buf;
+		m->m_size = size;
 		m->m_flags |= M_EXT;
 		m->m_ext.ext_free = NULL;
 		m->m_ext.ext_arg1 = NULL;
@@ -636,18 +639,28 @@ mb_ctor_pack(void *mem, int size, void *arg, int how)
 
 	/* m_ext is already initialized. */
 	m->m_data = m->m_ext.ext_buf;
+	m->m_size = m->m_ext.ext_size;
  	m->m_flags = (flags | M_EXT);
 
 	return (error);
 }
 
+/*
+ * Internal mbuf-allocator interfaces for initialising and destroying mbuf
+ * packet headers.  Device drivers and protocols currently don't ever need to
+ * set M_PKTHDR (just assert it) but may clear it, in which case they should
+ * use m_pkthdr_clear() rather than m_pkthdr_destroy().
+ */
 int
 m_pkthdr_init(struct mbuf *m, int how)
 {
 #ifdef MAC
 	int error;
 #endif
+
+	M_ASSERTPKTHDR(m);		/* Assume the caller will set this. */
 	m->m_data = m->m_pktdat;
+	m->m_size = MHLEN;
 	bzero(&m->m_pkthdr, sizeof(m->m_pkthdr));
 #ifdef MAC
 	/* If the label init fails, fail the alloc */
@@ -657,6 +670,40 @@ m_pkthdr_init(struct mbuf *m, int how)
 #endif
 
 	return (0);
+}
+
+/*
+ * NB: The mbuf might still be in use after the pkthdr is destroyed, so we
+ * need to suitably update other fields (m_flags, m_size) even as we clear the
+ * pkthdr.  There is some argument that it should be done only in
+ * m_pkthdr_clear() rather than the underlying destructor, but it is OK to do
+ * it here.
+ */
+void
+m_pkthdr_destroy(struct mbuf *m)
+{
+
+	M_ASSERTPKTHDR(m);
+
+	if (!SLIST_EMPTY(&m->m_pkthdr.tags))
+		m_tag_delete_chain(m, NULL);
+
+	/* XXXRW: Perhaps 0xdeadc0de? */
+	bzero(&m->m_pkthdr, sizeof(m->m_pkthdr));
+
+	/* This perhaps should be in m_pkthdr_clear()? */
+	if ((m->m_flags & M_EXT) == 0)
+		m->m_size = MLEN;
+	m->m_flags &= ~M_PKTHDR;
+}
+
+void
+m_pkthdr_clear(struct mbuf *m)
+{
+
+	M_ASSERTPKTHDR(m);
+
+	m_pkthdr_destroy(m);
 }
 
 /*

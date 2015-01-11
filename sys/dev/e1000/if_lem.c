@@ -3696,7 +3696,7 @@ lem_rxeof(struct adapter *adapter, int count, int *done)
 				adapter->lmp = mp;
 			} else {
 				/* Chain mbuf's together */
-				mp->m_flags &= ~M_PKTHDR;
+				m_pkthdr_clear(mp);
 				/*
 				 * Adjust length of previous mbuf in chain if
 				 * we received less than 4 bytes in the last

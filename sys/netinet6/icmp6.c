@@ -2716,8 +2716,7 @@ nolladdropt:
 		m->m_pkthdr.len = m->m_len = p - (u_char *)ip6;
 
 		/* connect m0 to m */
-		m_tag_delete_chain(m0, NULL);
-		m0->m_flags &= ~M_PKTHDR;
+		m_pkthdr_clear(m0);
 		m->m_next = m0;
 		m->m_pkthdr.len = m->m_len + m0->m_len;
 		m0 = NULL;

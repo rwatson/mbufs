@@ -1294,8 +1294,9 @@ cpsw_rx_dequeue(struct cpsw_softc *sc)
 		   out of received fragments. */
 		slot->mbuf->m_hdr.mh_data += bd.bufoff;
 		slot->mbuf->m_hdr.mh_len = bd.pktlen - 4;
+
+		M_ASSERTPKTHDR(slot->mbuf);
 		slot->mbuf->m_pkthdr.len = bd.pktlen - 4;
-		slot->mbuf->m_flags |= M_PKTHDR;
 		slot->mbuf->m_pkthdr.rcvif = ifp;
 		slot->mbuf->m_nextpkt = NULL;
 

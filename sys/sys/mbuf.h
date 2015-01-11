@@ -194,8 +194,13 @@ struct mbuf {
 	int32_t		 m_len;		/* amount of data in this mbuf */
 	uint32_t	 m_type:8,	/* type of data in this mbuf */
 			 m_flags:24;	/* flags; see below */
+	uint32_t	 m_size;	/* actual size of buffer */
+
+	/* XXXRW: This will need updating before merge. */
+#if 0
 #if !defined(__LP64__)
 	uint32_t	 m_pad;		/* pad for 64bit alignment */
+#endif
 #endif
 
 	/*
@@ -529,7 +534,9 @@ extern uma_zone_t	zone_jumbo16;
 extern uma_zone_t	zone_ext_refcnt;
 
 void		 mb_free_ext(struct mbuf *);
-int		 m_pkthdr_init(struct mbuf *, int);
+void		 m_pkthdr_clear(struct mbuf *);		/* Public. */
+void		 m_pkthdr_destroy(struct mbuf *);	/* Private. */
+int		 m_pkthdr_init(struct mbuf *, int);	/* Private. */
 
 static __inline int
 m_gettype(int size)
@@ -573,6 +580,7 @@ m_extaddref(struct mbuf *m, caddr_t buf, u_int size, u_int *ref_cnt,
 
 	atomic_add_int(ref_cnt, 1);
 	m->m_flags |= _M_EXT;
+	m->m_size = size;
 	m->m_ext.ext_buf = buf;
 	m->m_ext.ext_cnt = ref_cnt;
 	m->m_data = m->m_ext.ext_buf;
@@ -616,6 +624,9 @@ m_getzone(int size)
  * Inline because the consumer text overhead will be roughly the same to
  * initialize or call a function with this many parameters and M_PKTHDR
  * should go away with constant propagation for !MGETHDR.
+ *
+ * NB: 'size' argument is the size of allocated memory including any mbuf
+ * headers.  m_size is initialised to the remainder after any headers.
  */
 static __inline int
 m_init(struct mbuf *m, uma_zone_t zone, int size, int how, short type,
@@ -623,9 +634,17 @@ m_init(struct mbuf *m, uma_zone_t zone, int size, int how, short type,
 {
 	int error;
 
+	/*
+	 * XXXRW: This will eventually change to allow other sizes.  Once that
+	 * happens, update m->m_size calculation below.
+	 */
+	KASSERT(size == MSIZE, ("%s: size: %d rather than MSIZE (%d)",
+	    __func__, size, MSIZE));
+
 	m->m_next = NULL;
 	m->m_nextpkt = NULL;
-	m->m_data = m->m_dat;
+	m->m_data = m->m_dat;	/* m_pkthdr_init() will update m_data and */
+	m->m_size = MLEN;	/* m_size if needed. */
 	m->m_len = 0;
 	m->m_flags = flags;
 	m->m_type = type;
@@ -755,6 +774,7 @@ m_cljset(struct mbuf *m, void *cl, int type)
 	}
 
 	m->m_data = m->m_ext.ext_buf = cl;
+	m->m_size = size;
 	m->m_ext.ext_free = m->m_ext.ext_arg1 = m->m_ext.ext_arg2 = NULL;
 	m->m_ext.ext_size = size;
 	m->m_ext.ext_type = type;
@@ -817,6 +837,34 @@ m_last(struct mbuf *m)
 #define	M_ASSERTPKTHDR(m)						\
 	KASSERT((m) != NULL && (m)->m_flags & M_PKTHDR,			\
 	    ("%s: no mbuf packet header!", __func__))
+
+/*
+ * XXXRW: Temporary validation macro to check that m->m_size is set properly
+ * in various useful situations.  Eventually, it will be a bit different for
+ * non-M_EXT cases, checking against the zone rather than compile-time
+ * constants.
+ *
+ * NB: This doesn't use M_SIZE() because, fairly soon, M_SIZE() will be
+ * implemented using m_size.
+ */
+#ifdef INVARIANTS
+#define	M_ASSERTSIZE(m) do {						\
+	if ((m)->m_flags & _M_EXT)					\
+		KASSERT((m)->m_size == (m)->m_ext.ext_size,		\
+		    ("%s: M_EXT with m_size (%d) != ext_size (%d)",	\
+		    __func__, (m)->m_size, (m)->m_ext.ext_size));	\
+	else if ((m)->m_flags & M_PKTHDR)				\
+		KASSERT((m)->m_size == MHLEN,				\
+		    ("%s: M_PKTHDR with m_size (%d) != MHLEN (%d)",	\
+		    __func__, (m)->m_size, MHLEN));			\
+	else								\
+		KASSERT((m)->m_size == MLEN,				\
+		    ("%s: plain mbuf m_size (%d) != MLEN (%d)",		\
+		    __func__, (m)->m_size, MLEN));			\
+} while (0)
+#else
+#define	M_ASSERTSIZE(m)
+#endif
 
 /*
  * Ensure that the supplied mbuf is a valid, non-free mbuf.
@@ -1169,6 +1217,8 @@ static __inline struct mbuf *
 m_free(struct mbuf *m)
 {
 	struct mbuf *n = m->m_next;
+
+	M_ASSERTSIZE(m);
 
 	if ((m->m_flags & (M_PKTHDR|M_NOFREE)) == (M_PKTHDR|M_NOFREE))
 		m_tag_delete_chain(m, NULL);

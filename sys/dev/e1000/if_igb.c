@@ -4209,8 +4209,8 @@ igb_refresh_mbufs(struct rx_ring *rxr, int limit)
 		} else
 			mh = rxbuf->m_head;
 
+		M_ASSERTPKTHDR(mh);
 		mh->m_pkthdr.len = mh->m_len = M_SIZE(mh);
-		mh->m_flags |= M_PKTHDR;
 		/* Get the memory mapping */
 		error = bus_dmamap_load_mbuf_sg(rxr->htag,
 		    rxbuf->hmap, mh, hseg, &nsegs, BUS_DMA_NOWAIT);
@@ -4361,14 +4361,14 @@ igb_free_receive_ring(struct rx_ring *rxr)
 			bus_dmamap_sync(rxr->htag, rxbuf->hmap,
 			    BUS_DMASYNC_POSTREAD);
 			bus_dmamap_unload(rxr->htag, rxbuf->hmap);
-			rxbuf->m_head->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(rxbuf->m_head);
 			m_freem(rxbuf->m_head);
 		}
 		if (rxbuf->m_pack != NULL) {
 			bus_dmamap_sync(rxr->ptag, rxbuf->pmap,
 			    BUS_DMASYNC_POSTREAD);
 			bus_dmamap_unload(rxr->ptag, rxbuf->pmap);
-			rxbuf->m_pack->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(rxbuf->m_pack);
 			m_freem(rxbuf->m_pack);
 		}
 		rxbuf->m_head = NULL;
@@ -4449,8 +4449,8 @@ igb_setup_receive_ring(struct rx_ring *rxr)
 		}
 		m_adj(rxbuf->m_head, ETHER_ALIGN);
 		mh = rxbuf->m_head;
+		M_ASSERTPKTHDR(mh);
 		mh->m_len = mh->m_pkthdr.len = M_SIZE(mh);
-		mh->m_flags |= M_PKTHDR;
 		/* Get the memory mapping */
 		error = bus_dmamap_load_mbuf_sg(rxr->htag,
 		    rxbuf->hmap, rxbuf->m_head, hseg,
@@ -4867,14 +4867,14 @@ igb_free_receive_buffers(struct rx_ring *rxr)
 				bus_dmamap_sync(rxr->htag, rxbuf->hmap,
 				    BUS_DMASYNC_POSTREAD);
 				bus_dmamap_unload(rxr->htag, rxbuf->hmap);
-				rxbuf->m_head->m_flags |= M_PKTHDR;
+				M_ASSERTPKTHDR(rxbuf->m_head);
 				m_freem(rxbuf->m_head);
 			}
 			if (rxbuf->m_pack != NULL) {
 				bus_dmamap_sync(rxr->ptag, rxbuf->pmap,
 				    BUS_DMASYNC_POSTREAD);
 				bus_dmamap_unload(rxr->ptag, rxbuf->pmap);
-				rxbuf->m_pack->m_flags |= M_PKTHDR;
+				M_ASSERTPKTHDR(rxbuf->m_pack);
 				m_freem(rxbuf->m_pack);
 			}
 			rxbuf->m_head = NULL;
@@ -4913,7 +4913,7 @@ igb_rx_discard(struct rx_ring *rxr, int i)
 
 	/* Partially received? Free the chain */
 	if (rxr->fmp != NULL) {
-		rxr->fmp->m_flags |= M_PKTHDR;
+		M_ASSERTPKTHDR(rxr->fmp);
 		m_freem(rxr->fmp);
 		rxr->fmp = NULL;
 		rxr->lmp = NULL;
@@ -5174,8 +5174,7 @@ igb_rxeof(struct igb_queue *que, int count, int *done)
 			M_HASHTYPE_SET(rxr->fmp, M_HASHTYPE_OPAQUE);
 #endif
 			sendmp = rxr->fmp;
-			/* Make sure to set M_PKTHDR. */
-			sendmp->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(sendmp);
 			rxr->fmp = NULL;
 			rxr->lmp = NULL;
 		}

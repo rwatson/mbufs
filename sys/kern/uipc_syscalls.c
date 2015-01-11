@@ -2442,6 +2442,7 @@ retry_space:
 			/*
 			 * Attach EXT_SFBUF external storage.
 			 */
+			m0->m_size = PAGE_SIZE;
 			m0->m_ext.ext_buf = (caddr_t )sf_buf_kva(sf);
 			m0->m_ext.ext_size = PAGE_SIZE;
 			m0->m_ext.ext_arg1 = sf;

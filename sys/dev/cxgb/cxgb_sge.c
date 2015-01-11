@@ -1383,7 +1383,7 @@ t3_encap(struct sge_qset *qs, struct mbuf **m)
 
 	mtx_assert(&qs->lock, MA_OWNED);
 	cntrl = V_TXPKT_INTF(pi->txpkt_intf);
-	KASSERT(m0->m_flags & M_PKTHDR, ("not packet header\n"));
+	M_ASSERTPKTHDR(m0);
 	
 	if  (m0->m_nextpkt == NULL && m0->m_next != NULL &&
 	    m0->m_pkthdr.csum_flags & (CSUM_TSO))

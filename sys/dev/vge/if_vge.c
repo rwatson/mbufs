@@ -1477,7 +1477,7 @@ vge_rxeof(struct vge_softc *sc, int count)
 				sc->vge_cdata.vge_head = m;
 				sc->vge_cdata.vge_tail = m;
 			} else {
-				m->m_flags &= ~M_PKTHDR;
+				m_pkthdr_clear(m);
 				sc->vge_cdata.vge_tail->m_next = m;
 				sc->vge_cdata.vge_tail = m;
 			}
@@ -1530,14 +1530,14 @@ vge_rxeof(struct vge_softc *sc, int count)
 				m_freem(m);
 			} else {
 				m->m_len -= ETHER_CRC_LEN;
-				m->m_flags &= ~M_PKTHDR;
+				m_pkthdr_clear(m);
 				sc->vge_cdata.vge_tail->m_next = m;
 			}
 			m = sc->vge_cdata.vge_head;
-			m->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(m);
 			m->m_pkthdr.len = total_len - ETHER_CRC_LEN;
 		} else {
-			m->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(m);
 			m->m_pkthdr.len = m->m_len =
 			    (total_len - ETHER_CRC_LEN);
 		}

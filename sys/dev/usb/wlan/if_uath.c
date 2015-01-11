@@ -2607,7 +2607,7 @@ uath_data_rxeof(struct usb_xfer *xfer, struct uath_data *data,
 			sc->sc_intrx_head = m;
 			sc->sc_intrx_tail = m;
 		} else {
-			m->m_flags &= ~M_PKTHDR;
+			m_pkthdr_clear(m);
 			sc->sc_intrx_tail->m_next = m;
 			sc->sc_intrx_tail = m;
 		}
@@ -2677,8 +2677,8 @@ uath_data_rxeof(struct usb_xfer *xfer, struct uath_data *data,
 		m->m_data += sizeof(struct uath_chunk);
 	} else {
 		mp = sc->sc_intrx_head;
+		M_ASSERTPKTHDR(mp);
 		mp->m_pkthdr.rcvif = ifp;
-		mp->m_flags |= M_PKTHDR;
 		mp->m_pkthdr.len = sc->sc_intrx_len;
 		m = mp;
 	}

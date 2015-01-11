@@ -1402,7 +1402,7 @@ ece_intr_rx_locked(struct ece_softc *sc, int count)
 		mb->m_data += 2;
 		mb->m_len = mb->m_pkthdr.len = desc->length;
 
-		mb->m_flags |= M_PKTHDR;
+		M_ASSERTPKTHDR(mb);
 		mb->m_pkthdr.rcvif = ifp;
 		if ((ifp->if_capenable & IFCAP_RXCSUM) != 0) {
 			/*check for valid checksum*/

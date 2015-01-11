@@ -1690,8 +1690,7 @@ uhso_if_rxflush(void *arg)
 			/* Concat mbufs and fix headers */
 			m_cat(m0, m);
 			m0->m_pkthdr.len = len;
-			m->m_flags &= ~M_PKTHDR;
-
+			m_pkthdr_clear(m);
 			m = m_pullup(m0, sizeof(struct ip));
 			if (m == NULL) {
 				if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);

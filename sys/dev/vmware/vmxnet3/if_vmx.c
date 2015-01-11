@@ -1933,6 +1933,10 @@ vmxnet3_newbuf(struct vmxnet3_softc *sc, struct vmxnet3_rxring *rxr)
 	KASSERT(nsegs == 1,
 	    ("%s: mbuf %p with too many segments %d", __func__, m, nsegs));
 #if __FreeBSD_version < 902001
+	/*
+	 * XXXRW: Note that this would not be allowed in more recent versions
+	 * of FreeBSD: m_pkthdr_clear() must be used instead.
+	 */
 	if (btype == VMXNET3_BTYPE_BODY)
 		m->m_flags &= ~M_PKTHDR;
 #endif

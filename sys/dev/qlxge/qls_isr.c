@@ -167,7 +167,7 @@ qls_rx_comp(qla_host_t *ha, uint32_t rxr_idx, uint32_t cq_idx, q81_rx_t *cq_e)
 		if (mp == NULL) {
 			device_printf(dev, "%s: mp == NULL\n", __func__);
 		} else {
-			mp->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(mp);
 			mp->m_pkthdr.len = cq_e->length;
 			mp->m_pkthdr.rcvif = ifp;
 			mp->m_len = cq_e->length;

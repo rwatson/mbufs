@@ -2569,7 +2569,7 @@ rxintr_cleanup(softc_t *sc)
       {
       last_mbuf->m_next = new_mbuf;
       /* M_PKTHDR should be set in the first mbuf only. */
-      new_mbuf->m_flags &= ~M_PKTHDR;
+      m_pkthdr_clear(new_mbuf);
       }
     last_mbuf = new_mbuf;
 

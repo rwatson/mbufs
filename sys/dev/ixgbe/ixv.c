@@ -2715,7 +2715,6 @@ ixv_refresh_mbufs(struct rx_ring *rxr, int limit)
 			mh = m_gethdr(M_NOWAIT, MT_DATA);
 			if (mh == NULL)
 				goto update;
-			mh->m_flags |= M_PKTHDR;	/* XXXRW: Redundant? */
 			mh->m_pkthdr.len = mh->m_len = M_SIZE(mh);
 			m_adj(mh, ETHER_ALIGN);
 			/* Get the memory mapping */
@@ -2867,14 +2866,14 @@ ixv_free_receive_ring(struct rx_ring *rxr)
 			bus_dmamap_sync(rxr->htag, rxbuf->hmap,
 			    BUS_DMASYNC_POSTREAD);
 			bus_dmamap_unload(rxr->htag, rxbuf->hmap);
-			rxbuf->m_head->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(rxbuf->m_head);
 			m_freem(rxbuf->m_head);
 		}
 		if (rxbuf->m_pack != NULL) {
 			bus_dmamap_sync(rxr->ptag, rxbuf->pmap,
 			    BUS_DMASYNC_POSTREAD);
 			bus_dmamap_unload(rxr->ptag, rxbuf->pmap);
-			rxbuf->m_pack->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(rxbuf->m_pack);
 			m_freem(rxbuf->m_pack);
 		}
 		rxbuf->m_head = NULL;
@@ -2936,7 +2935,7 @@ ixv_setup_receive_ring(struct rx_ring *rxr)
 		}
 		m_adj(rxbuf->m_head, ETHER_ALIGN);
 		mh = rxbuf->m_head;
-		mh->m_flags |= M_PKTHDR; /* XXXRW: Redundant? */
+		M_ASSERTPKTHDR(mh);
 		mh->m_len = mh->m_pkthdr.len = M_SIZE(mh);
 		/* Get the memory mapping */
 		error = bus_dmamap_load_mbuf_sg(rxr->htag,
@@ -3173,14 +3172,14 @@ ixv_free_receive_buffers(struct rx_ring *rxr)
 				bus_dmamap_sync(rxr->htag, rxbuf->hmap,
 				    BUS_DMASYNC_POSTREAD);
 				bus_dmamap_unload(rxr->htag, rxbuf->hmap);
-				rxbuf->m_head->m_flags |= M_PKTHDR;
+				M_ASSERTPKTHDR(rxbuf->m_head);
 				m_freem(rxbuf->m_head);
 			}
 			if (rxbuf->m_pack != NULL) {
 				bus_dmamap_sync(rxr->ptag, rxbuf->pmap,
 				    BUS_DMASYNC_POSTREAD);
 				bus_dmamap_unload(rxr->ptag, rxbuf->pmap);
-				rxbuf->m_pack->m_flags |= M_PKTHDR;
+				M_ASSERTPKTHDR(rxbuf->m_pack);
 				m_freem(rxbuf->m_pack);
 			}
 			rxbuf->m_head = NULL;
@@ -3251,7 +3250,7 @@ ixv_rx_discard(struct rx_ring *rxr, int i)
 	rbuf = &rxr->rx_buffers[i];
 
 	if (rbuf->fmp != NULL) {/* Partial chain ? */
-		rbuf->fmp->m_flags |= M_PKTHDR;
+		M_ASSERTPKTHDR(rbuf->fmp);
 		m_freem(rbuf->fmp);
 		rbuf->fmp = NULL;
 	}
@@ -3375,7 +3374,7 @@ ixv_rxeof(struct ix_queue *que, int count)
 			if (hlen > IXV_RX_HDR)
 				hlen = IXV_RX_HDR;
 			mh->m_len = hlen;
-			mh->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(mh);
 			mh->m_next = NULL;
 			mh->m_pkthdr.len = mh->m_len;
 			/* Null buf pointer so it is refreshed */
@@ -3388,7 +3387,7 @@ ixv_rxeof(struct ix_queue *que, int count)
 			if (plen > 0) {
 				mp->m_len = plen;
 				mp->m_next = NULL;
-				mp->m_flags &= ~M_PKTHDR;
+				m_pkthdr_clear(mp);
 				mh->m_next = mp;
 				mh->m_pkthdr.len += mp->m_len;
 				/* Null buf pointer so it is refreshed */
@@ -3436,7 +3435,7 @@ ixv_rxeof(struct ix_queue *que, int count)
 			else {
 				/* first desc of a non-ps chain */
 				sendmp = mp;
-				sendmp->m_flags |= M_PKTHDR;
+				M_ASSERTPKTHDR(sendmp);
 				sendmp->m_pkthdr.len = mp->m_len;
 				if (staterr & IXGBE_RXD_STAT_VP) {
 					sendmp->m_pkthdr.ether_vtag = vtag;

@@ -1489,7 +1489,7 @@ nge_rxeof(struct nge_softc *sc)
 				m->m_pkthdr.len = total_len;
 				sc->nge_head = sc->nge_tail = m;
 			} else {
-				m->m_flags &= ~M_PKTHDR;
+				m_pkthdr_clear(m);
 				sc->nge_head->m_pkthdr.len += total_len;
 				sc->nge_tail->m_next = m;
 				sc->nge_tail = m;
@@ -1538,7 +1538,7 @@ nge_rxeof(struct nge_softc *sc)
 		/* Chain received mbufs. */
 		if (sc->nge_head != NULL) {
 			m->m_len = total_len;
-			m->m_flags &= ~M_PKTHDR;
+			m_pkthdr_clear(m);
 			sc->nge_tail->m_next = m;
 			m = sc->nge_head;
 			m->m_pkthdr.len += total_len;

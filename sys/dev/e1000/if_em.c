@@ -3935,8 +3935,8 @@ em_refresh_mbufs(struct rx_ring *rxr, int limit)
 		} else
 			m = rxbuf->m_head;
 
+		M_ASSERTPKTHDR(m);
 		m->m_len = m->m_pkthdr.len = adapter->rx_mbuf_sz;
-		m->m_flags |= M_PKTHDR;
 		m->m_data = m->m_ext.ext_buf;
 
 		/* Use bus_dma machinery to setup the memory mapping  */
@@ -4442,7 +4442,7 @@ em_rxeof(struct rx_ring *rxr, int count, int *done)
 			rxr->fmp = rxr->lmp = mp;
 		} else {
 			/* Chain mbuf's together */
-			mp->m_flags &= ~M_PKTHDR;
+			m_pkthdr_clear(mp);
 			rxr->lmp->m_next = mp;
 			rxr->lmp = mp;
 			rxr->fmp->m_pkthdr.len += len;
@@ -4518,7 +4518,7 @@ em_rx_discard(struct rx_ring *rxr, int i)
 
 	/* Free any previous pieces */
 	if (rxr->fmp != NULL) {
-		rxr->fmp->m_flags |= M_PKTHDR;
+		M_ASSERTPKTHDR(rxr->fmp);
 		m_freem(rxr->fmp);
 		rxr->fmp = NULL;
 		rxr->lmp = NULL;

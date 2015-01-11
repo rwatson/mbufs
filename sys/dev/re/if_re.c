@@ -2210,7 +2210,7 @@ re_rxeof(struct rl_softc *sc, int *rx_npktsp)
 			if (sc->rl_head == NULL)
 				sc->rl_head = sc->rl_tail = m;
 			else {
-				m->m_flags &= ~M_PKTHDR;
+				m_pkthdr_clear(m);
 				sc->rl_tail->m_next = m;
 				sc->rl_tail = m;
 			}
@@ -2299,7 +2299,7 @@ re_rxeof(struct rl_softc *sc, int *rx_npktsp)
 				m_freem(m);
 			} else {
 				m->m_len -= ETHER_CRC_LEN;
-				m->m_flags &= ~M_PKTHDR;
+				m_pkthdr_clear(m);
 				sc->rl_tail->m_next = m;
 			}
 			m = sc->rl_head;

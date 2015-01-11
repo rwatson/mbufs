@@ -3662,7 +3662,7 @@ alc_rxeof(struct alc_softc *sc, struct rx_rdesc *rrd)
 			sc->alc_cdata.alc_rxhead = mp;
 			sc->alc_cdata.alc_rxtail = mp;
 		} else {
-			mp->m_flags &= ~M_PKTHDR;
+			m_pkthdr_clear(mp);
 			sc->alc_cdata.alc_rxprev_tail =
 			    sc->alc_cdata.alc_rxtail;
 			sc->alc_cdata.alc_rxtail->m_next = mp;
@@ -3672,7 +3672,7 @@ alc_rxeof(struct alc_softc *sc, struct rx_rdesc *rrd)
 		if (count == nsegs - 1) {
 			/* Last desc. for this frame. */
 			m = sc->alc_cdata.alc_rxhead;
-			m->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(m);
 			/*
 			 * It seems that L1C/L2C controller has no way
 			 * to tell hardware to strip CRC bytes.

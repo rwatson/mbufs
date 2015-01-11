@@ -764,7 +764,7 @@ macb_rx(struct macb_softc *sc)
 			else
 				m->m_len = DATA_SIZE - 2;
 		} else {
-			m->m_flags &= ~M_PKTHDR;
+			m_pkthdr_clear(m);
 			m->m_len = DATA_SIZE;
 			sc->macb_cdata.rxtail->m_next = m;
 			sc->macb_cdata.rxtail = m;
@@ -778,7 +778,7 @@ macb_rx(struct macb_softc *sc)
 			}
 
 			m = sc->macb_cdata.rxhead;
-			m->m_flags |= M_PKTHDR;
+			M_ASSERTPKTHDR(m);
 			m->m_pkthdr.len = rxbytes;
 			m->m_pkthdr.rcvif = ifp;
 			if_inc_counter(ifp, IFCOUNTER_IPACKETS, 1);

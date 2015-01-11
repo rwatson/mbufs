@@ -2959,7 +2959,7 @@ mld_v2_merge_state_changes(struct in6_multi *inm, struct ifqueue *ifscq)
 			    __func__, m0, mt);
 
 			mtl = m_last(mt);
-			m0->m_flags &= ~M_PKTHDR;
+			m_pkthdr_clear(m0);
 			mt->m_pkthdr.len += recslen;
 			mt->m_pkthdr.PH_vt.vt_nrecs +=
 			    m0->m_pkthdr.PH_vt.vt_nrecs;
