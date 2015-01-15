@@ -67,8 +67,8 @@
 struct mbuf;
 #define	MHSIZE		offsetof(struct mbuf, M_dat.M_databuf)
 #define	MPKTHSIZE	offsetof(struct mbuf, M_dat.MH.MH_dat.MH_databuf)
-#define	MLEN		((int)(MSIZE - MHSIZE))		/* normal data len */
-#define	MHLEN		((int)(MSIZE - MPKTHSIZE))	/* data len w/pkthdr */
+#define	MLEN		((int)(MSIZE - MHSIZE))
+#define	MHLEN		((int)(MSIZE - MPKTHSIZE))
 #define	MINCLSIZE	(MHLEN + 1)
 
 #ifdef _KERNEL
@@ -107,7 +107,6 @@ struct m_tag {
  * Record/packet header in first mbuf of chain; valid only if M_PKTHDR is set.
  * Size ILP32: 48
  *	 LP64: 56
- *
  * Compile-time assertions in uipc_mbuf.c test these values to ensure that
  * they are correct.
  */
@@ -158,7 +157,6 @@ struct pkthdr {
  * set.
  * Size ILP32: 28
  *	 LP64: 48
- *
  * Compile-time assertions in uipc_mbuf.c test these values to ensure that
  * they are correct.
  */
@@ -180,11 +178,10 @@ struct struct_m_ext {
  */
 struct mbuf {
 	/*
+	 * XXXRW: Update this.
 	 * Header present at the beginning of every mbuf.
-	 *
 	 * Size ILP32: 24
 	 *      LP64: 32
-	 *
 	 * Compile-time assertions in uipc_mbuf.c test these values to ensure
 	 * that they are correct.
 	 */
@@ -200,7 +197,6 @@ struct mbuf {
 #if 0
 #if !defined(__LP64__)
 	uint32_t	 m_pad;		/* pad for 64bit alignment */
-#endif
 #endif
 
 	/*
