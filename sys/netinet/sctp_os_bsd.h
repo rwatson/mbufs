@@ -44,6 +44,8 @@ __FBSDID("$FreeBSD$");
 #include "opt_inet.h"
 #include "opt_sctp.h"
 
+#define	MBUF_PRIVATE	/* XXXRW: M_EXT */
+
 #include <sys/param.h>
 #include <sys/ktr.h>
 #include <sys/systm.h>

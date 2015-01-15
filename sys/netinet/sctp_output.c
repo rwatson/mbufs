@@ -33,8 +33,6 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
-#define	MBUF_PRIVATE		/* XXXRW: M_EXT used to make copying decions. */
-
 #include <netinet/sctp_os.h>
 #include <sys/proc.h>
 #include <netinet/sctp_var.h>
