@@ -158,7 +158,7 @@ getsock_cap(struct filedesc *fdp, int fd, cap_rights_t *rightsp,
 	struct file *fp;
 	int error;
 
-	error = fget_unlocked(fdp, fd, rightsp, 0, &fp, NULL);
+	error = fget_unlocked(fdp, fd, rightsp, &fp, NULL);
 	if (error != 0)
 		return (error);
 	if (fp->f_type != DTYPE_SOCKET) {
@@ -2110,6 +2110,7 @@ sendfile_getobj(struct thread *td, struct file *fp, vm_object_t *obj_res,
 			goto out;
 		}
 	} else if (fp->f_type == DTYPE_SHM) {
+		error = 0;
 		shmfd = fp->f_data;
 		obj = shmfd->shm_object;
 		*obj_size = shmfd->shm_size;

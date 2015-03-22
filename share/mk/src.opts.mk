@@ -58,6 +58,8 @@ __DEFAULT_YES_OPTIONS = \
     BINUTILS_BOOTSTRAP \
     BLUETOOTH \
     BOOT \
+    BOOTPARAMD \
+    BOOTPD \
     BSD_CPIO \
     BSDINSTALL \
     BSNMP \
@@ -81,11 +83,14 @@ __DEFAULT_YES_OPTIONS = \
     ELFTOOLCHAIN_TOOLS \
     EXAMPLES \
     FDT \
+    FILE \
+    FINGER \
     FLOPPY \
     FMTREE \
     FORTH \
     FP_LIBC \
     FREEBSD_UPDATE \
+    FTP \
     GAMES \
     GCOV \
     GDB \
@@ -100,6 +105,7 @@ __DEFAULT_YES_OPTIONS = \
     ICONV \
     INET \
     INET6 \
+    INETD \
     IPFILTER \
     IPFW \
     ISCSI \
@@ -135,7 +141,9 @@ __DEFAULT_YES_OPTIONS = \
     PORTSNAP \
     PPP \
     QUOTAS \
+    RADIUS_SUPPORT \
     RCMDS \
+    RBOOTD \
     RCS \
     RESCUE \
     ROUTED \
@@ -150,10 +158,13 @@ __DEFAULT_YES_OPTIONS = \
     SYSCONS \
     SYSINSTALL \
     TALK \
+    TCP_WRAPPERS \
     TCSH \
     TELNET \
     TESTS \
     TEXTPROC \
+    TFTP \
+    TIMED \
     UNBOUND \
     USB \
     UTMPX \
@@ -204,8 +215,8 @@ __TT=${MACHINE}
 # If the compiler is not C++11 capable, disable clang and use gcc instead.
 __DEFAULT_YES_OPTIONS+=GCC GCC_BOOTSTRAP GNUCXX
 __DEFAULT_NO_OPTIONS+=CLANG CLANG_BOOTSTRAP CLANG_FULL CLANG_IS_CC
-.elif ${__T} == "amd64" || ${__T} == "i386"
-# On x86, clang is enabled, and will be installed as the default cc.
+.elif ${__T} == "aarch64" || ${__T} == "amd64" || ${__T} == "i386"
+# On x86 and arm64, clang is enabled, and will be installed as the default cc.
 __DEFAULT_YES_OPTIONS+=CLANG CLANG_BOOTSTRAP CLANG_FULL CLANG_IS_CC
 __DEFAULT_NO_OPTIONS+=GCC GCC_BOOTSTRAP GNUCXX
 .elif ${__TT} == "arm" && ${__T:Marm*eb*} == ""
@@ -221,6 +232,9 @@ __DEFAULT_NO_OPTIONS+=CLANG_BOOTSTRAP CLANG_IS_CC
 # Everything else disables clang, and uses gcc instead.
 __DEFAULT_YES_OPTIONS+=GCC GCC_BOOTSTRAP GNUCXX
 __DEFAULT_NO_OPTIONS+=CLANG CLANG_BOOTSTRAP CLANG_FULL CLANG_IS_CC
+.endif
+.if ${__T} == "aarch64"
+BROKEN_OPTIONS+=BINUTILS BINUTILS_BOOTSTRAP GDB
 .endif
 
 .include <bsd.mkopt.mk>

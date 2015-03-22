@@ -2257,7 +2257,8 @@ soreceive_dgram(struct socket *so, struct sockaddr **psa, struct uio *uio,
 	 * Process one or more MT_CONTROL mbufs present before any data mbufs
 	 * in the first mbuf chain on the socket buffer.  We call into the
 	 * protocol to perform externalization (or freeing if controlp ==
-	 * NULL).
+	 * NULL). In some cases there can be only MT_CONTROL mbufs without
+	 * MT_DATA mbufs.
 	 */
 	if (m->m_type == MT_CONTROL) {
 		struct mbuf *cm = NULL, *cmn;
@@ -2287,8 +2288,8 @@ soreceive_dgram(struct socket *so, struct sockaddr **psa, struct uio *uio,
 			cm = cmn;
 		}
 	}
-	KASSERT(m->m_type == MT_DATA, ("soreceive_dgram: !data"));
-
+	KASSERT(m == NULL || m->m_type == MT_DATA,
+	    ("soreceive_dgram: !data"));
 	while (m != NULL && uio->uio_resid > 0) {
 		len = uio->uio_resid;
 		if (len > m->m_len)
@@ -2305,9 +2306,10 @@ soreceive_dgram(struct socket *so, struct sockaddr **psa, struct uio *uio,
 			m->m_len -= len;
 		}
 	}
-	if (m != NULL)
+	if (m != NULL) {
 		flags |= MSG_TRUNC;
-	m_freem(m);
+		m_freem(m);
+	}
 	if (flagsp != NULL)
 		*flagsp |= flags;
 	return (0);
@@ -3441,11 +3443,9 @@ soisdisconnecting(struct socket *so)
 	SOCKBUF_LOCK(&so->so_rcv);
 	so->so_state &= ~SS_ISCONNECTING;
 	so->so_state |= SS_ISDISCONNECTING;
-	so->so_rcv.sb_state |= SBS_CANTRCVMORE;
-	sorwakeup_locked(so);
+	socantrcvmore_locked(so);
 	SOCKBUF_LOCK(&so->so_snd);
-	so->so_snd.sb_state |= SBS_CANTSENDMORE;
-	sowwakeup_locked(so);
+	socantsendmore_locked(so);
 	wakeup(&so->so_timeo);
 }
 
@@ -3460,12 +3460,10 @@ soisdisconnected(struct socket *so)
 	SOCKBUF_LOCK(&so->so_rcv);
 	so->so_state &= ~(SS_ISCONNECTING|SS_ISCONNECTED|SS_ISDISCONNECTING);
 	so->so_state |= SS_ISDISCONNECTED;
-	so->so_rcv.sb_state |= SBS_CANTRCVMORE;
-	sorwakeup_locked(so);
+	socantrcvmore_locked(so);
 	SOCKBUF_LOCK(&so->so_snd);
-	so->so_snd.sb_state |= SBS_CANTSENDMORE;
 	sbdrop_locked(&so->so_snd, sbused(&so->so_snd));
-	sowwakeup_locked(so);
+	socantsendmore_locked(so);
 	wakeup(&so->so_timeo);
 }
 
