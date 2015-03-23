@@ -206,6 +206,7 @@ struct mbuf {
 #if !defined(__LP64__)
 	uint32_t	 m_pad;		/* pad for 64bit alignment */
 #endif
+#endif
 
 	/*
 	 * A set of optional headers (packet header, external storage header)
