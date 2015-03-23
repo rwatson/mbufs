@@ -3719,7 +3719,7 @@ lem_rxeof(struct adapter *adapter, int count, int *done)
 				    adapter->fmp);
 #ifndef __NO_STRICT_ALIGNMENT
 				if (adapter->max_frame_size >
-				    (M_SIZE(adapter->fmp - ETHER_ALIGN) &&
+				    (M_SIZE(adapter->fmp) - ETHER_ALIGN) &&
 				    lem_fixup_rx(adapter) != 0)
 					goto skip;
 #endif
