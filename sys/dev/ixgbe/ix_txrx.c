@@ -1307,8 +1307,8 @@ ixgbe_refresh_mbufs(struct rx_ring *rxr, int limit)
 			    M_PKTHDR, rxr->mbuf_sz);
 			if (mp == NULL)
 				goto update;
-			/* XXXRW: Possibly should be M_SIZE(mp)? */
-			if (adapter->max_frame_size <= (MCLBYTES - ETHER_ALIGN))
+			if (adapter->max_frame_size <=
+			    (M_SIZE(mp) - ETHER_ALIGN))
 				m_adj(mp, ETHER_ALIGN);
 		} else
 			mp = rxbuf->buf;
