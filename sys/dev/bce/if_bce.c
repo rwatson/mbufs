@@ -5560,7 +5560,7 @@ bce_get_pg_buf(struct bce_softc *sc, u16 prod, u16 prod_idx)
 
 	pgbd->rx_bd_haddr_lo  = htole32(BCE_ADDR_LO(segs[0].ds_addr));
 	pgbd->rx_bd_haddr_hi  = htole32(BCE_ADDR_HI(segs[0].ds_addr));
-	pgbd->rx_bd_len       = htole32(MCLBYTES);
+	pgbd->rx_bd_len       = htole32(m_new->m_len);
 	pgbd->rx_bd_flags     = htole32(RX_BD_FLAGS_START | RX_BD_FLAGS_END);
 
 	/* Save the mbuf and update our counter. */

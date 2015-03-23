@@ -1208,7 +1208,7 @@ fatm_supply_large_buffers(struct fatm_softc *sc)
 			 *
 			 * MEXT_ALIGN(m, LARGE_BUFFER_LEN);
 			 */
-			m->m_data += MCLBYTES - LARGE_BUFFER_LEN;
+			m->m_data += M_SIZE(m) - LARGE_BUFFER_LEN;
 			error = bus_dmamap_load(sc->rbuf_tag, rb->map,
 			    m->m_data, LARGE_BUFFER_LEN, dmaload_helper,
 			    &phys, BUS_DMA_NOWAIT);

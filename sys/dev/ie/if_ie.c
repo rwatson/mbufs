@@ -729,7 +729,7 @@ ieget(struct ie_softc *sc, struct mbuf **mp)
 		}
 		if (resid >= MINCLSIZE) {
 			if (MCLGET(m, M_NOWAIT))
-				m->m_len = min(resid, MCLBYTES);
+				m->m_len = min(resid, M_SIZE(m));
 		} else {
 			if (resid < m->m_len) {
 				if (!top && resid + max_linkhdr <= m->m_len)

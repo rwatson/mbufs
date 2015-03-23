@@ -2925,7 +2925,7 @@ en_attach(struct en_softc *sc)
 	utopia_init_media(&sc->utopia);
 
 	MGET(sc->padbuf, M_WAITOK, MT_DATA);
-	bzero(sc->padbuf->m_data, MLEN);
+	bzero(sc->padbuf->m_data, M_SIZE(sc->padbuf));
 
 	if (bus_dma_tag_create(bus_get_dma_tag(sc->dev), 1, 0,
 	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,

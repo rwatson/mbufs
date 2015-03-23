@@ -1350,7 +1350,7 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 							    ERESTART : ENOMEM;
 							goto errout;
 						}
-						len = MLEN;
+						len = M_SIZE(m);
 					}
 					if (top && totlen >= MINCLSIZE) {
 						if (!(MCLGET(m, M_NOWAIT))) {

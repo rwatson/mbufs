@@ -1895,7 +1895,7 @@ hifn_crypto(
 					m_freem(m0);
 					goto err_srcmap;
 				}
-				len = MCLBYTES;
+				len = M_SIZE(m0);
 			}
 			totlen -= len;
 			m0->m_pkthdr.len = m0->m_len = len;

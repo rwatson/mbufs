@@ -356,7 +356,7 @@ emac_rxeof(struct emac_softc *sc, int count)
 			m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 			if (m == NULL)
 				return;
-			m->m_len = m->m_pkthdr.len = MCLBYTES;
+			m->m_len = m->m_pkthdr.len = M_SIZE(m);
 
 			len -= ETHER_CRC_LEN;
 
@@ -374,13 +374,15 @@ emac_rxeof(struct emac_softc *sc, int count)
 			 * a new mbuf and copy ethernet header + IP header to
 			 * the new mbuf. The new mbuf is prepended into the
 			 * existing mbuf chain.
+			 *
+			 * XXXRW: Both bz and I are unconvinced by the below.
 			 */
-			if (m->m_len <= (M_SIZE(m) - ETHER_HDR_LEN)) {
+			if (m->m_len <= (MHLEN - ETHER_HDR_LEN)) {
 				bcopy(m->m_data, m->m_data + ETHER_HDR_LEN,
 				    m->m_len);
 				m->m_data += ETHER_HDR_LEN;
-			} else if (m->m_len <= (MCLBYTES - ETHER_HDR_LEN) &&
-			    m->m_len > (M_SIZE(m) - ETHER_HDR_LEN)) {
+			} else if (m->m_len <= (M_SIZE(m) - ETHER_HDR_LEN) &&
+			    m->m_len > (MHLEN - ETHER_HDR_LEN)) {
 				MGETHDR(m0, M_NOWAIT, MT_DATA);
 				if (m0 != NULL) {
 					len = ETHER_HDR_LEN +

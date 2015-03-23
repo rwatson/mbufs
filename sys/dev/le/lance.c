@@ -419,7 +419,7 @@ lance_get(struct lance_softc *sc, int boff, int totlen)
 			MGET(newm, M_NOWAIT, MT_DATA);
 			if (newm == 0)
 				goto bad;
-			len = MLEN;
+			len = M_SIZE(newm);
 			m = m->m_next = newm;
 		}
 	}

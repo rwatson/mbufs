@@ -972,13 +972,12 @@ pack_buf(void *h, size_t hlen, void *t, size_t tlen)
 	while ((n = tlen) != 0) {
 		if (n > MLEN) {
 			m = m_getcl(M_NOWAIT, MT_DATA, 0);
-			if (n > MCLBYTES)
-				n = MCLBYTES;
 		} else
 			MGET(m, M_NOWAIT, MT_DATA);
-
-		if(m == NULL)
+		if (m == NULL)
 			goto drop;
+		if (n > M_SIZE(m))
+			n = M_SIZE(m);
 
 		last->m_next = m;
 		last = m;

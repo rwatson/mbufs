@@ -3719,7 +3719,7 @@ lem_rxeof(struct adapter *adapter, int count, int *done)
 				    adapter->fmp);
 #ifndef __NO_STRICT_ALIGNMENT
 				if (adapter->max_frame_size >
-				    (MCLBYTES - ETHER_ALIGN) &&
+				    (M_SIZE(adapter->fmp - ETHER_ALIGN) &&
 				    lem_fixup_rx(adapter) != 0)
 					goto skip;
 #endif
@@ -3740,11 +3740,11 @@ skip:
 discard:
 			/* Reuse loaded DMA map and just update mbuf chain */
 			mp = adapter->rx_buffer_area[i].m_head;
-			mp->m_len = mp->m_pkthdr.len = MCLBYTES;
+			mp->m_len = mp->m_pkthdr.len = M_SIZE(mp);
 			mp->m_data = mp->m_ext.ext_buf;
 			mp->m_next = NULL;
 			if (adapter->max_frame_size <=
-			    (MCLBYTES - ETHER_ALIGN))
+			    (M_SIZE(mp) - ETHER_ALIGN))
 				m_adj(mp, ETHER_ALIGN);
 			if (adapter->fmp != NULL) {
 				m_freem(adapter->fmp);
@@ -3850,7 +3850,7 @@ lem_fixup_rx(struct adapter *adapter)
 
 	error = 0;
 	m = adapter->fmp;
-	if (m->m_len <= (MCLBYTES - ETHER_HDR_LEN)) {
+	if (m->m_len <= (M_SIZE(m) - ETHER_HDR_LEN)) {
 		bcopy(m->m_data, m->m_data + ETHER_HDR_LEN, m->m_len);
 		m->m_data += ETHER_HDR_LEN;
 	} else {

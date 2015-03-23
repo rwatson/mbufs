@@ -2657,7 +2657,7 @@ fxp_new_rfabuf(struct fxp_softc *sc, struct fxp_rx *rxp)
 	 */
 	rfa = mtod(m, struct fxp_rfa *);
 	m->m_data += sc->rfa_size;
-	rfa->size = htole16(MCLBYTES - sc->rfa_size - RFA_ALIGNMENT_FUDGE);
+	rfa->size = htole16(M_SIZE(m) - sc->rfa_size - RFA_ALIGNMENT_FUDGE);
 
 	rfa->rfa_status = 0;
 	rfa->rfa_control = htole16(FXP_RFA_CONTROL_EL);
@@ -2741,7 +2741,7 @@ fxp_discard_rfabuf(struct fxp_softc *sc, struct fxp_rx *rxp)
 	 */
 	rfa = mtod(m, struct fxp_rfa *);
 	m->m_data += sc->rfa_size;
-	rfa->size = htole16(MCLBYTES - sc->rfa_size - RFA_ALIGNMENT_FUDGE);
+	rfa->size = htole16(M_SIZE(m) - sc->rfa_size - RFA_ALIGNMENT_FUDGE);
 
 	rfa->rfa_status = 0;
 	rfa->rfa_control = htole16(FXP_RFA_CONTROL_EL);
