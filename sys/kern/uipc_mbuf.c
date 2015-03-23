@@ -116,7 +116,7 @@ CTASSERT(offsetof(struct mbuf, m_dat) == 40);
 CTASSERT(sizeof(struct pkthdr) == 56);
 CTASSERT(sizeof(struct m_ext) == 48);
 #else
-CTASSERT(offsetof(struct mbuf, m_dat) == 28);
+CTASSERT(offsetof(struct mbuf, m_dat) == 24);
 CTASSERT(sizeof(struct pkthdr) == 48);
 CTASSERT(sizeof(struct m_ext) == 28);
 #endif
